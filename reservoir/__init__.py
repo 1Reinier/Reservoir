@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from .esn import *
 import pkg_resources
 
