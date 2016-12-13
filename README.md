@@ -1,7 +1,7 @@
 Reservoir
 =========
-> A toolset for creating and optimizing Echo State Networks.
+A toolset for creating and optimizing Echo State Networks.
 
-Author: Reinier Maat
-License: MIT
-2016
+>Author: Reinier Maat
+>License: MIT
+>2016
