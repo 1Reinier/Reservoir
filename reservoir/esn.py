@@ -436,6 +436,8 @@ class EchoStateNetworkCV:
         Evaluation metric that is used to guide optimization
     esn_burn_in : int
         Number of time steps to dicard upon training a single Echo State Network
+    acquisition_type : {'MPI', 'EI', 'LCB'}
+        The type of acquisition function to use in Bayesian Optimization
     max_time : float
         Maximum number of seconds before quitting optimization
     n_jobs : int
@@ -446,21 +448,22 @@ class EchoStateNetworkCV:
     """
     
     def __init__(self, bounds, subsequence_length, eps=1e-8, initial_samples=8, validate_fraction=0.2, 
-                 max_iterations=1000, batch_size=4, cv_samples=1, mcmc_samples=None, scoring_method='tanh', 
-                 esn_burn_in=100, max_time=np.inf, n_jobs=4, verbose=True):
+                 max_iterations=1000, batch_size=1, cv_samples=1, mcmc_samples=None, scoring_method='tanh', 
+                 esn_burn_in=100, acquisition_type='EI', max_time=np.inf, n_jobs=1, verbose=True):
         self.bounds = bounds
         self.subsequence_length = subsequence_length
         self.eps = eps
         self.initial_samples = initial_samples
         self.validate_fraction = validate_fraction
         self.max_iterations = max_iterations
-        self.batch_size = batch_size  # GPyOPt does currently not support this well
+        self.batch_size = batch_size  # GPyOPt does currently not support this well; Currently ignored
         self.cv_samples = cv_samples
         self.mcmc_samples = mcmc_samples
         self.scoring_method = scoring_method
         self.esn_burn_in = esn_burn_in
+        self.acquisition_type = acquisition_type
         self.max_time = max_time
-        self.n_jobs = n_jobs
+        self.n_jobs = n_jobs  # Currently ignored
         self.verbose = verbose
         
         # Normalize bounds domains and remember transformation
@@ -519,8 +522,7 @@ class EchoStateNetworkCV:
             Array with denormalized arguments
         
         """
-        print(normalized_arguments)
-        denormalized_arguments = (normalized_arguments + self.bound_intercepts) * self.bound_scalings
+        denormalized_arguments = (normalized_arguments * self.bound_scalings) + self.bound_intercepts
         return denormalized_arguments
     
     def optimize(self, y, x=None):
@@ -530,7 +532,11 @@ class EchoStateNetworkCV:
         
         Parameters
         ----------
-        y : 
+        y : numpy array
+            Array with target values (y-values)
+        
+        x : numpy array or None
+            Optional array with input values (x-values)
         
         Returns
         -------
@@ -538,7 +544,6 @@ class EchoStateNetworkCV:
             The best parameters found during optimization
         
         """
-        
         # Temporarily store the data
         self.x = x
         self.y = y
@@ -549,11 +554,11 @@ class EchoStateNetworkCV:
         if self.mcmc_samples is None:
             # MLE solution
             model_type = 'GP'
-            acquisition_type = 'LCB'
+            completed_acquisition_type = self.acquisition_type
         else:
             # MCMC solution
             model_type = 'GP_MCMC'
-            acquisition_type = 'LCB_MCMC'
+            completed_acquisition_type = self.acquisition_type + '_MCMC'
             keyword_arguments['n_samples'] = self.mcmc_samples
             
         # Set contraint (spectral radius - leaking rate ≤ 0)
@@ -563,27 +568,35 @@ class EchoStateNetworkCV:
             print("Model initialization and exploration run...")
         
         # Build optimizer    
-        self.optimizer = GPyOpt.methods.BayesianOptimization(self.objective_sampler,
+        self.optimizer = GPyOpt.methods.BayesianOptimization(f=self.objective_sampler,
                                                              domain=self.scaled_bounds,
                                                              initial_design_numdata=self.initial_samples,
                                                              constrains=constraints, 
                                                              model_type=model_type, 
-                                                             acquisition_type=acquisition_type, 
-                                                             acquisition_optimizer_type = 'lbfgs',
-                                                             normalize_Y=True, 
-                                                             #evaluator_type='local_penalization', 
-                                                             #num_cores=self.n_jobs, 
-                                                             #batch_size=self.batch_size,
-                                                             **keyword_arguments)
+                                                             acquisition_type=completed_acquisition_type,
+                                                             exact_feval=False,
+                                                             cost_withGradients=None,
+                                                             #normalize_Y=True,
+                                                             #evaluator_type='local_penalization',
+                                                             acquisition_optimizer_type='lbfgs',
+                                                             verbosity=self.verbose,
+                                                             num_cores=self.n_jobs, 
+                                                             batch_size=self.batch_size,
+                                                             **keyword_arguments
+                                                             ) 
+                                                             
+                                                             
         # Show model
         if self.verbose:
+            print("Model initialization done.", '\n')
             print(self.optimizer.model.model, '\n')
         
         if self.verbose:
             print("Starting optimization...")
         
         # Optimize
-        self.optimizer.run_optimization(eps=self.eps, max_iter=self.max_iterations, max_time=self.max_time)
+        self.optimizer.run_optimization(eps=self.eps, max_iter=self.max_iterations, max_time=self.max_time, 
+                                        verbosity=self.verbose)
         
         # Clean up memory (for Jupyter Notebook)
         self.x = None
@@ -678,9 +691,6 @@ class EchoStateNetworkCV:
         for i in range(self.cv_samples):  # TODO: Can be parallelized
             
             # Get indices
-            validate_length = np.round(self.subsequence_length * self.validate_fraction).astype(int)
-            train_length = self.subsequence_length - validate_length
-            
             start_index = np.random.randint(viable_start, viable_stop)
             train_stop_index = start_index + train_length
             validate_stop_index = train_stop_index + validate_length

@@ -1,4 +1,4 @@
-import pytest
+#import pytest
 import numpy as np
 import matplotlib.pyplot as plt
 from reservoir.esn import *
@@ -20,13 +20,16 @@ def test_esn():
               {'name': 'n_nodes', 'type': 'continuous', 'domain': (100, 1500)}]
     
     # Set optimization parameters
-    esn_cv = EchoStateNetworkCV(bounds, 1000, 
-                                mcmc_samples=20,
+    esn_cv = EchoStateNetworkCV(bounds=bounds,
+                                initial_samples=100,
+                                subsequence_length=1000,
+                                eps=1e-3,
+                                #mcmc_samples=20,  # Enable to test MCMC sampling (memory usage high!)
                                 cv_samples=1, 
-                                iterations=10, 
-                                scoring_method='tanh', 
-                                batch_size=1, 
-                                n_jobs=1)
+                                max_iterations=1000, 
+                                scoring_method='tanh',
+                                verbose=True
+                                )
     
     # Optimize
     best_arguments = esn_cv.optimize(y=train)
