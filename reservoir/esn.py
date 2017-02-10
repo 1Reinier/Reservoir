@@ -561,6 +561,10 @@ class EchoStateNetworkCV:
             completed_acquisition_type = self.acquisition_type + '_MCMC'
             keyword_arguments['n_samples'] = self.mcmc_samples
             
+        if self.batch_size > 1:
+            # Add more exploration if batch size is larger than 1
+            keyword_arguments[evaluator_type] = 'local_penalization'
+            
         # Set contraint (spectral radius - leaking rate ≤ 0)
         constraints = [{'name': 'alpha-rho', 'constrain': 'x[:, 3] - x[:, 2]'}]
         
@@ -577,7 +581,6 @@ class EchoStateNetworkCV:
                                                              exact_feval=False,
                                                              cost_withGradients=None,
                                                              #normalize_Y=True,
-                                                             #evaluator_type='local_penalization',
                                                              acquisition_optimizer_type='lbfgs',
                                                              verbosity=self.verbose,
                                                              num_cores=self.n_jobs, 
