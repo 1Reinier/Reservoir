@@ -563,7 +563,7 @@ class EchoStateNetworkCV:
             
         if self.batch_size > 1:
             # Add more exploration if batch size is larger than 1
-            keyword_arguments[evaluator_type] = 'local_penalization'
+            keyword_arguments['evaluator_type'] = 'local_penalization'
             
         # Set contraint (spectral radius - leaking rate ≤ 0)
         constraints = [{'name': 'alpha-rho', 'constrain': 'x[:, 3] - x[:, 2]'}]
