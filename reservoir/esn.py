@@ -4,6 +4,7 @@ import scipy.linalg
 import GPy
 import GPyOpt
 import copy
+import json
 
 
 __all__ = ['EchoStateNetwork', 'EchoStateNetworkCV']
@@ -525,7 +526,7 @@ class EchoStateNetworkCV:
         denormalized_arguments = (normalized_arguments * self.bound_scalings) + self.bound_intercepts
         return denormalized_arguments
     
-    def optimize(self, y, x=None):
+    def optimize(self, y, x=None, store_path=None):
         """optimize(self, y, x=None)
         
         Uses Bayesian Optimization with Gaussian Process priors to optimize ESN hyperparameters.
@@ -537,6 +538,9 @@ class EchoStateNetworkCV:
         
         x : numpy array or None
             Optional array with input values (x-values)
+        
+        store_path : str or None
+            Optional path where to store best found parameters to disk (in JSON)
         
         Returns
         -------
@@ -613,13 +617,20 @@ class EchoStateNetworkCV:
         # Show convergence
         self.optimizer.plot_convergence()
         
-        # Return best parameters
+        # Scale arguments
         best_found = self.denormalize_arguments(self.optimizer.x_opt).T
         
-        # Scale arguments
+        # Store in dict
         best_arguments = dict(input_scaling=best_found[0], feedback_scaling=best_found[1], leaking_rate=best_found[2], 
                          spectral_radius=best_found[3], regularization=10.**best_found[4], 
                          connectivity=10.**best_found[5], n_nodes=best_found[6], feedback=True)
+        
+        # Save to disk if desired
+        if not store_path is None:
+            with open(store_path, 'w+') as output_file:
+                json.dump(best_arguments, output_file, indent=4)
+        
+        # Return best parameters
         return best_arguments
         
     def objective_function(self, parameters, train_y, validate_y, train_x=None, validate_x=None):
