@@ -281,7 +281,7 @@ class EchoStateNetwork:
         ----------
         n_steps : int
             The number of steps to predict into the future (internally done in one step increments)
-        x : array or None
+        x : numpy array or None
             If prediciton requires inputs, provide them here
         y_start : float or None
             Starting value from which to start prediction. If None, last stored value from training will be used
@@ -321,8 +321,8 @@ class EchoStateNetwork:
         inputs = self.normalize(inputs)
         
         # Exclude last column if feedback is enabled (since feedback is calculated on the fly below)
-        if self.feedback:
-            inputs = inputs[:, :-1]
+        # if self.feedback:
+        #     inputs = inputs[:, :-1]
         
         # Predict iteratively
         for t in range(n_steps):
@@ -353,7 +353,7 @@ class EchoStateNetwork:
         ----------
         y : numpy array
             Array with y-values. At every time point a prediction is made (excluding the current y)
-        x : array or None
+        x : numpy array or None
             If prediciton requires inputs, provide them here
         steps_ahead : int (default 1)
             The number of steps to predict into the future at every time point
@@ -370,8 +370,11 @@ class EchoStateNetwork:
         if self.out_weights is None or self.y_last is None:
             raise ValueError('Error: ESN not trained yet')
         
+        # Get shape
+        t_steps = y.shape[0]
+        
         # Initialize input
-        inputs = np.ones((n_steps, 1))  # Add bias term
+        inputs = np.ones((t_steps, 1))  # Add bias term
         
         # Choose correct input
         if x is None and not self.feedback:
@@ -381,7 +384,7 @@ class EchoStateNetwork:
             inputs = np.hstack((inputs, x))  # Add data inputs
         
         # Set parameters
-        y_predicted = np.zeros(n_steps)
+        y_predicted = np.zeros((t_steps, steps_ahead))
         
         # Get last states
         previous_y = self.y_last
@@ -395,22 +398,39 @@ class EchoStateNetwork:
         inputs = self.normalize(inputs)
         
         # Exclude last column if feedback is enabled (since feedback is calculated on the fly below)
-        if self.feedback:
-            inputs = inputs[:, :-1]
+        # if self.feedback:
+        #     inputs = inputs[:, :-1]
         
         # Predict iteratively
-        for t in range(n_steps):
-            # Get correct input based on feedback setting
-            current_input = inputs[t] if not self.feedback else np.hstack((inputs[t], previous_y))
+        for t in range(t_steps):
             
-            # Update
-            update = np.tanh(self.in_weights @ current_input.T + self.weights @ current_state)
-            current_state = self.leaking_rate * update + (1 - self.leaking_rate) * current_state
+            # State_buffer for steps ahead prediction
+            prediction_state = np.copy(current_state)
             
-            # Prediction. Order of concatenation is [1, inputs, y(n-1), state]
-            complete_row = np.hstack((current_input, current_state))
-            y_predicted[t] = complete_row @ self.out_weights
-            previous_y = y_predicted[t]
+            # Y buffer for step ahead prediction
+            prediction_y = np.copy(previous_y)
+            
+            # Predict stepwise at from current time step
+            for n in range(steps_ahead):
+                
+                # Get correct input based on feedback setting
+                prediction_input = inputs[t + n] if not self.feedback else np.hstack((inputs[t + n], prediction_y))
+                
+                # Update
+                prediction_update = np.tanh(self.in_weights @ prediction_input.T + self.weights @ prediction_state)
+                prediction_state = self.leaking_rate * prediction_update + (1 - self.leaking_rate) * prediction_state
+                
+                # Store for next iteration of t (evolves true state)
+                if n == 0:
+                    current_state = np.copy(prediction_state)
+                
+                # Prediction. Order of concatenation is [1, inputs, y(n-1), state]
+                prediction_row = np.hstack((prediction_input, prediction_state))
+                y_predicted[t, n] = prediction_row @ self.out_weights
+                prediction_y = y_predicted[t, n]
+            
+            # Evolve true state
+            previous_y = y[t]
         
         # Denormalize predictions
         y_predicted = self.denormalize(outputs=y_predicted)
@@ -418,7 +438,7 @@ class EchoStateNetwork:
         # Return predictions
         return y_predicted
         
-    def error(self, predicted, target, method='mse'):
+    def error(self, predicted, target, method='mse', alpha=1.):
         """Evaluates the error between predictions and target values.
         
         Parameters
@@ -429,6 +449,8 @@ class EchoStateNetwork:
             Target values
         method : {'mse', 'tanh', 'rmse', 'nrmse'}
             Evaluation metric. 'tanh' takes the hyperbolic tangent of mse to bound its domain to [0, 1]
+        alpha : float
+            Alpha coefficient to scale the tanh error transformation: alpha * tanh{(1 / alpha) * error}
         
         Returns
         -------
@@ -447,7 +469,7 @@ class EchoStateNetwork:
         if method == 'mse':
             error = np.mean(np.square(errors))
         elif method == 'tanh':
-            error = np.tanh(np.mean(np.square(errors)))  # To 'squeeze' errors onto the interval (0, 1)
+            error = alpha * np.tanh((1. / alpha) * np.mean(np.square(errors)))  # To 'squeeze' errors onto the interval (0, 1)
         elif method == 'rmse':
             error = np.sqrt(np.mean(np.square(errors)))
         elif method == 'nrmse':
@@ -477,10 +499,10 @@ class EchoStateNetworkCV:
     ----------
     bounds : list
         List of dicts specifying the bounds for optimization. Every dict has to contain entries for the following keys:
-        name : string
-        type : {'continuous', 'discrete'}
-        domain : tuple
-            Tuple with minimum value and maximum value of that parameter.
+        - name : string
+        - type : {'continuous', 'discrete'}
+        - domain : tuple
+              Tuple with minimum value and maximum value of that parameter.
     subsequence_length : int
         Number of samples in one cross-validation sample
     eps : float
@@ -500,6 +522,8 @@ class EchoStateNetworkCV:
         of the Gaussian Process. This may make ESN optimization more accurate but can also slow it down.
     scoring_method : {'mse', 'rmse', 'tanh'}
         Evaluation metric that is used to guide optimization
+    tanh_alpha : float
+        Alpha coefficient used to scale the tanh error function: alpha * tanh{(1 / alpha) * mse}
     esn_burn_in : int
         Number of time steps to dicard upon training a single Echo State Network
     acquisition_type : {'MPI', 'EI', 'LCB'}
@@ -515,7 +539,7 @@ class EchoStateNetworkCV:
     
     def __init__(self, bounds, subsequence_length, eps=1e-8, initial_samples=8, validate_fraction=0.2, 
                  max_iterations=1000, batch_size=1, cv_samples=1, mcmc_samples=None, scoring_method='tanh', 
-                 esn_burn_in=100, acquisition_type='EI', max_time=np.inf, n_jobs=1, verbose=True):
+                 tanh_alpha=1., esn_burn_in=100, acquisition_type='EI', max_time=np.inf, n_jobs=1, verbose=True):
         self.bounds = bounds
         self.subsequence_length = subsequence_length
         self.eps = eps
@@ -526,6 +550,7 @@ class EchoStateNetworkCV:
         self.cv_samples = cv_samples
         self.mcmc_samples = mcmc_samples
         self.scoring_method = scoring_method
+        self.alpha = tanh_alpha
         self.esn_burn_in = esn_burn_in
         self.acquisition_type = acquisition_type
         self.max_time = max_time
@@ -691,8 +716,7 @@ class EchoStateNetworkCV:
                                                              verbosity=self.verbose,
                                                              num_cores=self.n_jobs, 
                                                              batch_size=self.batch_size,
-                                                             **keyword_arguments
-                                                             ) 
+                                                             **keyword_arguments) 
                                                              
                                                              
         # Show model
@@ -707,12 +731,7 @@ class EchoStateNetworkCV:
         self.optimizer.run_optimization(eps=self.eps, max_iter=self.max_iterations, max_time=self.max_time, 
                                         verbosity=self.verbose)
         
-        # Clean up memory (for Jupyter Notebook, ensures immediate garbage collection)
-        self.x = None
-        self.y = None
-        del self.x
-        del self.y
-        
+        # Inform user
         if self.verbose:        
             print('Done.')
         
@@ -768,7 +787,7 @@ class EchoStateNetworkCV:
         esn.train(x=train_x, y=train_y, burn_in=self.esn_burn_in)
 
         # Validation score
-        score = esn.test(x=validate_x, y=validate_y, scoring_method=self.scoring_method)
+        score = esn.test(x=validate_x, y=validate_y, scoring_method=self.scoring_method, alpha=self.alpha)
         return score
 
     def objective_sampler(self, parameters):
@@ -828,7 +847,7 @@ class EchoStateNetworkCV:
             # Loop through series and score result
             for n in range(n_series):
                 scores[i, n] = self.objective_function(parameters, train_y[:, n].reshape(-1, 1), 
-                                                   validate_y[:, n].reshape(-1, 1), train_x, validate_x)
+                                                       validate_y[:, n].reshape(-1, 1), train_x, validate_x)
         
         # Return scores
         if self.verbose:    
