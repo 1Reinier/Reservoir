@@ -80,7 +80,7 @@ class EchoStateNetwork:
         graph = nx.DiGraph(self.weights)
         nx.draw(graph)
         
-    def normalize(self, inputs=None, outputs=None, store=False):
+    def normalize(self, inputs=None, outputs=None, keep=False):
         """Normalizes array by column (along rows) and stores mean and standard devation.
         
         Set `store` to True if you want to retain means and stds for denormalization later.
@@ -91,7 +91,7 @@ class EchoStateNetwork:
             Input matrix that is to be normalized
         outputs : array or None
             Output column vector that is to be normalized
-        store : bool
+        keep : bool
             Stores the normalization transformation in the object to denormalize later
         
         Returns
@@ -101,6 +101,7 @@ class EchoStateNetwork:
             unpacked before returning
         
         """      
+        # Checks
         if inputs is None and outputs is None:
             raise ValueError('Inputs and outputs cannot both be None')
         
@@ -108,20 +109,16 @@ class EchoStateNetwork:
         transformed = []
         
         if not inputs is None:
-            if store:
+            if keep:
                 # Store for denormalization
                 self._input_means = inputs.mean(axis=0)
                 self._input_stds = inputs.std(ddof=1, axis=0)
-                
-                # Do not normalize bias
-                self._input_means[0] = 0
-                self._input_stds[0] = 1
                 
             # Transform
             transformed.append((inputs - self._input_means) / self._input_stds)
             
         if not outputs is None:
-            if store:
+            if keep:
                 # Store for denormalization
                 self._output_means = outputs.mean(axis=0)
                 self._output_stds = outputs.std(ddof=1, axis=0)
@@ -190,11 +187,16 @@ class EchoStateNetwork:
         # Checks
         if x is None and not self.feedback:
             raise ValueError("Error: provide x or enable feedback")
+            
+        # Normalize inputs and outputs
+        y = self.normalize(outputs=y, keep=True)
+        if not x is None:
+            x = self.normalize(inputs=x, keep=True)
         
         # Reset state
         current_state = self.state[-1]  # From default or pretrained state
         
-        # Calculate correct shape based on feedback (one row less)
+        # Calculate correct shape based on feedback (feedback means one row less)
         rows = y.shape[0] - 1 if self.feedback else y.shape[0]
         start_index = 1 if self.feedback else 0  # Convenience index
         
@@ -205,7 +207,7 @@ class EchoStateNetwork:
         inputs = np.ones((rows, 1))  # Add bias for all t = 0, ..., T
         
         # Add data inputs if present
-        if x is not None:
+        if not x is None:
             inputs = np.hstack((inputs, x[start_index:]))  # Add data inputs
             
         # Set and scale input weights (for memory length and non-linearity)
@@ -216,9 +218,6 @@ class EchoStateNetwork:
             inputs = np.hstack((inputs, y[:-1]))  # Add teacher forced signal (equivalent to y(t-1) as input)
             feedback_weights = self.feedback_scaling * np.random.uniform(-1, 1, size=(self.n_nodes, 1))
             self.in_weights = np.hstack((self.in_weights, feedback_weights))
-            
-        # Normalize inputs and outputs
-        inputs, y = self.normalize(inputs, y, store=True)
                 
         # Train iteratively
         for t in range(inputs.shape[0]):
@@ -296,14 +295,17 @@ class EchoStateNetwork:
         if self.out_weights is None or self.y_last is None:
             raise ValueError('Error: ESN not trained yet')
         
+        # Normalize the inputs (like was done in train)
+        if not x is None:
+            x = self.normalize(inputs=x)
+            
         # Initialize input
         inputs = np.ones((n_steps, 1))  # Add bias term
         
         # Choose correct input
         if x is None and not self.feedback:
             raise ValueError("Error: cannot run without feedback and without x. Enable feedback or supply x")
-
-        elif x is not None:
+        elif not x is None:
             inputs = np.hstack((inputs, x))  # Add data inputs
         
         # Set parameters
@@ -311,18 +313,11 @@ class EchoStateNetwork:
         
         # Get last states
         previous_y = self.y_last
-        if y_start:
+        if not y_start is None:
             previous_y = self.normalize(outputs=y_start)[0]
         
         # Initialize state from last availble in train
         current_state = self.state[-1]
-        
-        # Normalize the inputs (as is done in train)
-        inputs = self.normalize(inputs)
-        
-        # Exclude last column if feedback is enabled (since feedback is calculated on the fly below)
-        # if self.feedback:
-        #     inputs = inputs[:, :-1]
         
         # Predict iteratively
         for t in range(n_steps):
@@ -370,8 +365,11 @@ class EchoStateNetwork:
         if self.out_weights is None or self.y_last is None:
             raise ValueError('Error: ESN not trained yet')
         
-        # Get shape
-        t_steps = y.shape[0]
+        # Normalize the arguments (like was done in train)
+        y = self.normalize(outputs=y)
+        print('Stepwise predict y-shape after norm:', y.shape)
+        if not x is None:
+            x = self.normalize(inputs=x)
         
         # Initialize input
         inputs = np.ones((t_steps, 1))  # Add bias term
@@ -379,27 +377,22 @@ class EchoStateNetwork:
         # Choose correct input
         if x is None and not self.feedback:
             raise ValueError("Error: cannot run without feedback and without x. Enable feedback or supply x")
-
-        elif x is not None:
+        elif not x is None:
             inputs = np.hstack((inputs, x))  # Add data inputs
+        
+        # Get shape
+        t_steps = y.shape[0]
         
         # Set parameters
         y_predicted = np.zeros((t_steps, steps_ahead))
         
         # Get last states
         previous_y = self.y_last
-        if y_start:
+        if not y_start is None:
             previous_y = self.normalize(outputs=y_start)[0]
         
         # Initialize state from last availble in train
         current_state = self.state[-1]
-        
-        # Normalize the inputs (as is done in train)
-        inputs = self.normalize(inputs)
-        
-        # Exclude last column if feedback is enabled (since feedback is calculated on the fly below)
-        # if self.feedback:
-        #     inputs = inputs[:, :-1]
         
         # Predict iteratively
         for t in range(t_steps):
@@ -463,7 +456,7 @@ class EchoStateNetwork:
         
         # Adjust for NaN and np.inf in predictions (unstable solution)
         if not np.all(np.isfinite(predicted)):
-            #print("Warning: some predicted values are not finite")
+            print("Warning: some predicted values are not finite")
             errors = np.inf
         
         if method == 'mse':
@@ -640,7 +633,7 @@ class EchoStateNetworkCV:
             print("Warning: y-array has more series (columns) than samples (rows). Check if this is correct")
         
         # Checks for x
-        if not x == None:
+        if not x is None:
             
             # Check dimensions
             if not x.ndim == 2:
