@@ -245,7 +245,7 @@ class EchoStateNetwork:
         # Return all data for computation or visualization purposes (Note: these are normalized)
         return complete_data, (y[1:] if self.feedback else y), burn_in
             
-    def test(self, y, x=None, y_start=None, scoring_method='mse'):
+    def test(self, y, x=None, y_start=None, scoring_method='mse', alpha=1.):
         """Tests and scores against known output.
         
         Parameters
@@ -258,6 +258,8 @@ class EchoStateNetwork:
             Starting value from which to start testing. If None, last stored value from trainging will be used
         scoring_method : {'mse', 'rmse', 'nrmse', 'tanh'}
             Evaluation metric used to calculate error
+        alpha : float
+            Alpha coefficient to scale the tanh error transformation: alpha * tanh{(1 / alpha) * error}
             
         Returns
         -------
@@ -269,7 +271,7 @@ class EchoStateNetwork:
         y_predicted = self.predict(y.shape[0], x, y_start=y_start)
         
         # Return error
-        return self.error(y_predicted, y, scoring_method)
+        return self.error(y_predicted, y, scoring_method, alpha=alpha)
     
     def predict(self, n_steps, x=None, y_start=None):
         """Predicts n values in advance.
@@ -367,24 +369,28 @@ class EchoStateNetwork:
         
         # Normalize the arguments (like was done in train)
         y = self.normalize(outputs=y)
-        print('Stepwise predict y-shape after norm:', y.shape)
         if not x is None:
             x = self.normalize(inputs=x)
         
-        # Initialize input
-        inputs = np.ones((t_steps, 1))  # Add bias term
-        
+        # Timesteps in y
+        t_steps = y.shape[0]
+
         # Choose correct input
         if x is None and not self.feedback:
             raise ValueError("Error: cannot run without feedback and without x. Enable feedback or supply x")
         elif not x is None:
-            inputs = np.hstack((inputs, x))  # Add data inputs
-        
-        # Get shape
-        t_steps = y.shape[0]
+            # Initialize input
+            inputs = np.ones((t_steps, 1))  # Add bias term
+            inputs = np.hstack((inputs, x))  # Add x inputs
+        else:
+            # x is None
+            inputs = np.ones((t_steps + steps_ahead, 1))  # Add bias term
+            
+        # Run until we have no further inputs
+        time_length = t_steps if x is None else t_steps - steps_ahead
         
         # Set parameters
-        y_predicted = np.zeros((t_steps, steps_ahead))
+        y_predicted = np.zeros((time_length, steps_ahead))
         
         # Get last states
         previous_y = self.y_last
@@ -395,7 +401,7 @@ class EchoStateNetwork:
         current_state = self.state[-1]
         
         # Predict iteratively
-        for t in range(t_steps):
+        for t in range(time_length):
             
             # State_buffer for steps ahead prediction
             prediction_state = np.copy(current_state)
