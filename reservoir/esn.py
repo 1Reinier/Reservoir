@@ -35,29 +35,35 @@ class EchoStateNetwork:
         The L2-regularization parameter used in Ridge regression for model inference
     feedback : bool
         Sets feedback of the last value back into the network on or off
+    random_seed : int
+        Seed used to initialize RandomState in reservoir generation and weight initialization
     
     """
     
     def __init__(self, n_nodes, input_scaling=0.5, feedback_scaling=0.5, spectral_radius=0.8, 
-                 leaking_rate=1.0, connectivity=0.1, regularization=1e-8, feedback=True):
+                 leaking_rate=1.0, connectivity=0.1, regularization=1e-8, feedback=True, random_seed=42):
         # Parameters
         self.n_nodes = int(np.round(n_nodes))
         self.input_scaling = input_scaling
         self.feedback_scaling = feedback_scaling
-        #self.noise_scaling = noise_scaling  # Ridge is enough?
         self.spectral_radius = spectral_radius
         self.connectivity = connectivity
         self.input_scaling = input_scaling
         self.leaking_rate = leaking_rate
         self.regularization = regularization
         self.feedback = feedback
+        self.seed = random_seed
         self.generate_reservoir()
+
         
     def generate_reservoir(self):
         """Generates random reservoir from parameters set at initialization."""
+        # Initialize new random state
+        random_state = np.random.RandomState(self.seed)
+        
         # Set weights and sparsity randomly
-        self.weights = np.random.uniform(-1., 1., size=(self.n_nodes, self.n_nodes))
-        accept = np.random.uniform(size=(self.n_nodes, self.n_nodes)) < self.connectivity
+        self.weights = random_state.uniform(-1., 1., size=(self.n_nodes, self.n_nodes))
+        accept = random_state.uniform(size=(self.n_nodes, self.n_nodes)) < self.connectivity
         self.weights *= accept
     
         # Set spectral density
@@ -187,6 +193,9 @@ class EchoStateNetwork:
         # Checks
         if x is None and not self.feedback:
             raise ValueError("Error: provide x or enable feedback")
+        
+        # Initialize new random state
+        random_state = np.random.RandomState(self.seed + 1)
             
         # Normalize inputs and outputs
         y = self.normalize(outputs=y, keep=True)
@@ -211,12 +220,12 @@ class EchoStateNetwork:
             inputs = np.hstack((inputs, x[start_index:]))  # Add data inputs
             
         # Set and scale input weights (for memory length and non-linearity)
-        self.in_weights = self.input_scaling * np.random.uniform(-1, 1, size=(self.n_nodes, inputs.shape[1]))
+        self.in_weights = self.input_scaling * random_state.uniform(-1, 1, size=(self.n_nodes, inputs.shape[1]))
                 
         # Add feedback if requested, optionally with feedback scaling
         if self.feedback:
             inputs = np.hstack((inputs, y[:-1]))  # Add teacher forced signal (equivalent to y(t-1) as input)
-            feedback_weights = self.feedback_scaling * np.random.uniform(-1, 1, size=(self.n_nodes, 1))
+            feedback_weights = self.feedback_scaling * random_state.uniform(-1, 1, size=(self.n_nodes, 1))
             self.in_weights = np.hstack((self.in_weights, feedback_weights))
                 
         # Train iteratively
@@ -229,11 +238,6 @@ class EchoStateNetwork:
         complete_data = np.hstack((inputs, self.state))
         train_x = complete_data[burn_in:]  # Include everything after burn_in
         train_y = y[burn_in + 1:] if self.feedback else y[burn_in:]
-                
-        # Ridge regression, optional pseudo-inverse solution
-        # ridge_x = np.vstack((train_x, np.sqrt(self.regularization) * np.eye(train_x.shape[1])))
-        # ridge_y = np.vstack((train_y, np.zeros((train_x.shape[1], 1))))
-        # self.out_weights = np.linalg.pinv(ridge_x) @ ridge_y
         
         # Ridge regression, full inverse solution
         self.out_weights = np.linalg.inv(train_x.T @ train_x + self.regularization * \
@@ -473,16 +477,6 @@ class EchoStateNetwork:
             error = np.sqrt(np.mean(np.square(errors)))
         elif method == 'nrmse':
             error = np.sqrt(np.mean(np.square(errors))) / target.ravel().std(ddof=1)
-        # elif method == 'negative_logposterior':
-        #     n = errors.shape[0]
-        #     sse = np.square(errors).sum()
-        #     ssw = self.out_weights.T @ self.out_weights
-        #     var = np.square(errors.std(ddof=1))
-        #     ols_loglikelihood = (- (n / 2) * np.log(2 * np.pi) - (n / 2) * np.log(var) - (1 / (2*var)) * sse).ravel()
-        #     ridge_logprior = (- (self.regularization / 2) * ssw).ravel()
-        #     logposterior = ols_loglikelihood + ridge_logprior
-        #     logposterior = logposterior if np.isfinite(logposterior) else -np.inf
-        #     return -logposterior
         else:
             raise ValueError('Scoring method not recognized')
         return error
@@ -538,7 +532,8 @@ class EchoStateNetworkCV:
     
     def __init__(self, bounds, subsequence_length, eps=1e-8, initial_samples=8, validate_fraction=0.2, 
                  max_iterations=1000, batch_size=1, cv_samples=1, mcmc_samples=None, scoring_method='tanh', 
-                 tanh_alpha=1., esn_burn_in=100, acquisition_type='EI', max_time=np.inf, n_jobs=1, verbose=True):
+                 tanh_alpha=1., esn_burn_in=100, acquisition_type='EI', max_time=np.inf, n_jobs=1, 
+                 random_seed=42, verbose=True):
         self.bounds = bounds
         self.subsequence_length = subsequence_length
         self.eps = eps
@@ -554,6 +549,7 @@ class EchoStateNetworkCV:
         self.acquisition_type = acquisition_type
         self.max_time = max_time
         self.n_jobs = n_jobs  # Currently ignored
+        self.seed = random_seed
         self.verbose = verbose
         
         # Normalize bounds domains and remember transformation
@@ -710,7 +706,6 @@ class EchoStateNetworkCV:
                                                              acquisition_type=completed_acquisition_type,
                                                              exact_feval=False,
                                                              cost_withGradients=None,
-                                                             #normalize_Y=True,
                                                              acquisition_optimizer_type='lbfgs',
                                                              verbosity=self.verbose,
                                                              num_cores=self.n_jobs, 
@@ -733,6 +728,10 @@ class EchoStateNetworkCV:
         # Inform user
         if self.verbose:        
             print('Done.')
+            
+        # Purge temporary data references
+        del self.x
+        del self.y
         
         # Show convergence
         self.optimizer.plot_convergence()
@@ -742,8 +741,8 @@ class EchoStateNetworkCV:
         
         # Store in dict
         best_arguments = dict(input_scaling=best_found[0], feedback_scaling=best_found[1], leaking_rate=best_found[2], 
-                         spectral_radius=best_found[3], regularization=10.**best_found[4], 
-                         connectivity=10.**best_found[5], n_nodes=best_found[6], feedback=True)
+                         spectral_radius=best_found[3], regularization=10.**best_found[4], connectivity=10.**best_found[5], 
+                         n_nodes=best_found[6], random_seed=self.seed, feedback=True)
         
         # Save to disk if desired
         if not store_path is None:
@@ -781,7 +780,8 @@ class EchoStateNetworkCV:
         # Build network
         esn = EchoStateNetwork(input_scaling=arguments[0], feedback_scaling=arguments[1], leaking_rate=arguments[2], 
                                spectral_radius=arguments[3], regularization=10.**arguments[4], 
-                               connectivity=10.**arguments[5], n_nodes=arguments[6], feedback=True)
+                               connectivity=10.**arguments[5], n_nodes=arguments[6], random_seed=self.seed, 
+                               feedback=True)
         # Train
         esn.train(x=train_x, y=train_y, burn_in=self.esn_burn_in)
 
@@ -824,11 +824,14 @@ class EchoStateNetworkCV:
         # Score storage
         scores = np.zeros((self.cv_samples, n_series))
         
+        # Initialize new random state
+        random_state = np.random.RandomState(self.seed + 2)
+        
          # Get samples
         for i in range(self.cv_samples):  # TODO: Can be parallelized
             
             # Get indices
-            start_index = np.random.randint(viable_start, viable_stop)
+            start_index = random_state.randint(viable_start, viable_stop)
             train_stop_index = start_index + train_length
             validate_stop_index = train_stop_index + validate_length
             
@@ -855,47 +858,3 @@ class EchoStateNetworkCV:
         # Pass back as a column vector (as required by GPyOpt)
         mean_score = scores.mean().reshape(-1, 1) 
         return mean_score  
-        
-#         # Parallel execution of models
-#         tasks_left = copy.deepcopy(self.cv_samples)
-        
-#         while tasks_left > 0:
-            
-#             # Spawn parallel pool
-#             with Pool(processes=min(self.n_jobs, tasks_left)) as pool:
-                
-#                 # Results container
-#                 results = []
-                
-#                 # Set subsequences
-#                 for n in range(self.n_jobs):
-                    
-#                     # Get indices
-#                     start_index = np.random.randint(viable_start, viable_stop)
-#                     train_stop_index = start_index + train_length
-#                     validate_stop_index = train_stop_index + validate_length
-
-#                     # Get samples
-#                     train_y = training_y[start_index: train_stop_index]
-#                     validate_y = training_y[train_stop_index: validate_stop_index]
-
-#                     if not training_x is None:
-#                         train_x = training_x[start_index: train_stop_index]
-#                         validate_x = training_x[train_stop_index: validate_stop_index]
-#                     else:
-#                         train_x = None
-#                         validate_x = None
-                
-#                     # Consolidate arguments
-#                     arguments = (parameters, train_y, validate_y, train_x, validate_x)
-#                     results.append(arguments)
-                
-#                 # Parallel dispatch 
-#                 results = map(lambda parameters: pool.apply_async(self.objective_function, parameters), results)
-            
-#                 # Get and store results
-#                 results = map(lambda result: result.get(), results)
-#                 scores += results
-                
-#             # Update tasks left
-#             tasks_left -= self.n_jobs
