@@ -465,9 +465,9 @@ class EchoStateNetwork:
         errors = predicted.ravel() - target.ravel()
         
         # Adjust for NaN and np.inf in predictions (unstable solution)
-        if not np.all(np.isfinite(predicted)):
-            print("Warning: some predicted values are not finite")
-            errors = np.inf
+        # if not np.all(np.isfinite(predicted)):
+        #     print("Warning: some predicted values are not finite")
+        #     errors = np.inf
         
         if method == 'mse':
             error = np.mean(np.square(errors))
