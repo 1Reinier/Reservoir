@@ -60,15 +60,25 @@ class EchoStateNetwork:
         """Generates random reservoir from parameters set at initialization."""
         # Initialize new random state
         random_state = np.random.RandomState(self.seed)
+        print("Seed:", self.seed, 'State:', random_state)
         
         # Set weights and sparsity randomly
         self.weights = random_state.uniform(-1., 1., size=(self.n_nodes, self.n_nodes))
+        print("Weights:", self.weights)
+
         accept = random_state.uniform(size=(self.n_nodes, self.n_nodes)) < self.connectivity
+        print("Accept:", accept)
+        
         self.weights *= accept
+        print("Accepted weights:", self.weights)
     
         # Set spectral density
         max_eigenvalue = np.abs(np.linalg.eigvals(self.weights)).max()  # Any == -1 -> look up
+        print("max_eigenvalue:", self.weights)
+        print("spectral_radius:", self.spectral_radius)
         self.weights *= self.spectral_radius / max_eigenvalue
+        
+        print("final weights:", self.weights)
         
         # Default state
         self.state = np.zeros((1, self.n_nodes))
