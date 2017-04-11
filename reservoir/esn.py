@@ -74,6 +74,7 @@ class EchoStateNetwork:
     
         # Set spectral density
         max_eigenvalue = np.abs(np.linalg.eigvals(self.weights)).max()  # Any == -1 -> look up
+        print("All eigenvals:", np.linalg.eigvals(self.weights))
         print("max_eigenvalue:", max_eigenvalue)
         print("spectral_radius:", self.spectral_radius)
         self.weights *= self.spectral_radius / max_eigenvalue
