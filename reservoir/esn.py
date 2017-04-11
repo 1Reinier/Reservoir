@@ -65,13 +65,13 @@ class EchoStateNetwork:
         # Set weights and sparsity randomly
         self.weights = random_state.uniform(-1., 1., size=(self.n_nodes, self.n_nodes))
         print("Weights:", self.weights)
-        self.initial_weights = np.copy(self.weights)
 
         accept = random_state.uniform(size=(self.n_nodes, self.n_nodes)) < self.connectivity
         print("Accept:", accept)
         
         self.weights *= accept
         print("Accepted weights:", self.weights)
+        self.accepted_weights = np.copy(self.weights)
     
         # Set spectral density
         max_eigenvalue = np.abs(np.linalg.eigvals(self.weights)).max()
