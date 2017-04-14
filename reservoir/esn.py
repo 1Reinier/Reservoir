@@ -37,6 +37,17 @@ class EchoStateNetwork:
         Sets feedback of the last value back into the network on or off
     random_seed : int
         Seed used to initialize RandomState in reservoir generation and weight initialization
+        
+    Methods
+    -------
+    train(y, x=None, burn_in=100)
+        Train an Echo State Network
+    test(y, x=None, y_start=None, scoring_method='mse', alpha=1.)
+        Tests and scores against known output
+    predict(n_steps, x=None, y_start=None)
+        Predicts n values in advance
+    predict_stepwise(y, x=None, steps_ahead=1, y_start=None)
+        Predicts a specified number of steps into the future for every time point in y-values array
     
     """
     
@@ -60,27 +71,24 @@ class EchoStateNetwork:
         """Generates random reservoir from parameters set at initialization."""
         # Initialize new random state
         random_state = np.random.RandomState(self.seed)
-        print("Seed:", self.seed, 'State:', random_state)
         
         # Set weights and sparsity randomly
-        self.weights = random_state.uniform(-1., 1., size=(self.n_nodes, self.n_nodes))
-        print("Weights:", self.weights)
-
-        accept = random_state.uniform(size=(self.n_nodes, self.n_nodes)) < self.connectivity
-        print("Accept:", accept)
+        max_tries = 1000
+        for i in range(max_tries):
+            self.weights = random_state.uniform(-1., 1., size=(self.n_nodes, self.n_nodes))
+            accept = random_state.uniform(size=(self.n_nodes, self.n_nodes)) < self.connectivity
+            self.weights *= accept
         
-        self.weights *= accept
-        print("Accepted weights:", self.weights)
-        self.accepted_weights = np.copy(self.weights)
-    
-        # Set spectral density
-        max_eigenvalue = np.abs(np.linalg.eigvals(self.weights)).max()
-        print("All eigenvals:", np.linalg.eigvals(self.weights))
-        print("max_eigenvalue:", max_eigenvalue)
-        print("spectral_radius:", self.spectral_radius)
+            # Set spectral density
+            max_eigenvalue = np.abs(np.linalg.eigvals(self.weights)).max()
+            if max_eigenvalue > 0:
+                break
+            elif i == max_tries - 1:
+                raise ValueError('Nilpotent reservoirs are not allowed. \
+                                 Increase connectivity and/or number of nodes.')
+        
+        # Set spectral radius of weight matrix
         self.weights *= self.spectral_radius / max_eigenvalue
-        
-        print("final weights:", self.weights)
         
         # Default state
         self.state = np.zeros((1, self.n_nodes))
