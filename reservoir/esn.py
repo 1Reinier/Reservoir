@@ -495,6 +495,11 @@ class EchoStateNetwork:
             error = alpha * np.tanh((1. / alpha) * np.mean(np.square(errors)))  # To 'squeeze' errors onto the interval (0, 1)
         elif method == 'rmse':
             error = np.sqrt(np.mean(np.square(errors)))
+        elif method == 'nmse':
+            error = np.mean(np.square(errors)) / np.square(target.ravel().std(ddof=1))
+        elif method == 'tanh-nmse':
+            nmse = np.mean(np.square(errors)) / np.square(target.ravel().std(ddof=1))
+            error = alpha * np.tanh((1. / alpha) nmse)
         elif method == 'nrmse':
             error = np.sqrt(np.mean(np.square(errors))) / target.ravel().std(ddof=1)
         else:
