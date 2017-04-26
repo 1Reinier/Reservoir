@@ -2,3 +2,4 @@ numpy
 scipy
 GPy
 GPyOpt
+PyDOE

@@ -470,8 +470,11 @@ class EchoStateNetwork:
             Predicted value
         target : array
             Target values
-        method : {'mse', 'tanh', 'rmse', 'nrmse'}
-            Evaluation metric. 'tanh' takes the hyperbolic tangent of mse to bound its domain to [0, 1]
+        method : {'mse', 'tanh', 'rmse', 'nmse', 'nrmse', 'tanh-nmse', 'log-tanh', 'log'}
+            Evaluation metric. 'tanh' takes the hyperbolic tangent of mse to bound its domain to [0, 1] to ensure 
+            continuity for unstable models. 'log' takes the logged mse, and 'log-tanh' takes the log of the squeezed
+            normalized mse. The log ensures that any variance in the GP stays within bounds as errors go toward 0.
+            
         alpha : float
             Alpha coefficient to scale the tanh error transformation: alpha * tanh{(1 / alpha) * error}
         
@@ -497,11 +500,17 @@ class EchoStateNetwork:
             error = np.sqrt(np.mean(np.square(errors)))
         elif method == 'nmse':
             error = np.mean(np.square(errors)) / np.square(target.ravel().std(ddof=1))
+        elif method == 'nrmse':
+            error = np.sqrt(np.mean(np.square(errors))) / target.ravel().std(ddof=1)
         elif method == 'tanh-nmse':
             nmse = np.mean(np.square(errors)) / np.square(target.ravel().std(ddof=1))
             error = alpha * np.tanh((1. / alpha) * nmse)
-        elif method == 'nrmse':
-            error = np.sqrt(np.mean(np.square(errors))) / target.ravel().std(ddof=1)
+        elif method == 'log':
+            mse = np.mean(np.square(errors))
+            error = np.log(mse)
+        elif method == 'log-tanh':
+            nrmse = np.sqrt(np.mean(np.square(errors))) / target.ravel().std(ddof=1)
+            error = np.log(alpha * np.tanh((1. / alpha) * nrmse))
         else:
             raise ValueError('Scoring method not recognized')
         return error
@@ -538,7 +547,7 @@ class EchoStateNetworkCV:
     mcmc_samples : int or None
         If any number of samples is specified, GPyOpt will use MCMC to draw samples for optimization
         of the Gaussian Process. This may make ESN optimization more accurate but can also slow it down.
-    scoring_method : {'mse', 'rmse', 'tanh'}
+    scoring_method : {'mse', 'rmse', 'tanh', 'nmse', 'nrmse', 'log', 'log-tanh', 'nmse-tanh'}
         Evaluation metric that is used to guide optimization
     tanh_alpha : float
         Alpha coefficient used to scale the tanh error function: alpha * tanh{(1 / alpha) * mse}
@@ -565,7 +574,7 @@ class EchoStateNetworkCV:
         self.initial_samples = initial_samples
         self.validate_fraction = validate_fraction
         self.max_iterations = max_iterations
-        self.batch_size = batch_size  # GPyOPt does currently not support this well; Currently ignored
+        self.batch_size = batch_size
         self.cv_samples = cv_samples
         self.mcmc_samples = mcmc_samples
         self.scoring_method = scoring_method
@@ -573,7 +582,7 @@ class EchoStateNetworkCV:
         self.esn_burn_in = esn_burn_in
         self.acquisition_type = acquisition_type
         self.max_time = max_time
-        self.n_jobs = n_jobs  # Currently ignored
+        self.n_jobs = n_jobs
         self.seed = random_seed
         self.verbose = verbose
         
@@ -700,7 +709,7 @@ class EchoStateNetworkCV:
         self.y = y
         
         # Keywords to feed into Bayesian Optimization
-        keyword_arguments = {'kernel': GPy.kern.sde_Matern52(input_dim=7, ARD=True)}
+        keyword_arguments = {'kernel': GPy.kern.Matern52(input_dim=7, ARD=True)}
         
         if self.mcmc_samples is None:
             # MLE solution
@@ -714,7 +723,7 @@ class EchoStateNetworkCV:
             
         if self.batch_size > 1:
             # Add more exploration if batch size is larger than 1
-            #keyword_arguments['evaluator_type'] = 'local_penalization'
+            #keyword_arguments['evaluator_type'] = 'local_penalization'  # BUG: GPyOpt cannot parallelize this
             pass
             
         # Set contraint (spectral radius - leaking rate ≤ 0)
@@ -777,6 +786,142 @@ class EchoStateNetworkCV:
         
         # Return best parameters
         return best_arguments
+        
+def optimize_modular(self, y, x=None, store_path=None):
+    """Performs optimization (with cross-validation).
+    
+    Uses Bayesian Optimization with Gaussian Process priors to optimize ESN hyperparameters.
+    
+    Parameters
+    ----------
+    y : numpy array
+        Array with target values (y-values)
+    
+    x : numpy array or None
+        Optional array with input values (x-values)
+    
+    store_path : str or None
+        Optional path where to store best found parameters to disk (in JSON)
+    
+    Returns
+    -------
+    best_arguments : numpy array
+        The best parameters found during optimization
+    
+    """
+    # Checks
+    self.validate_data(y, x, self.verbose)
+    
+    # Temporarily store the data
+    self.x = x
+    self.y = y
+    
+    # Inform user    
+    if self.verbose:
+        print("Model initialization and exploration run...")
+    
+    
+    # Define objective
+    objective = GPyOpt.core.task.SingleObjective(self.objective_sampler, 
+                                                 batch_size=self.batch_size, 
+                                                 num_cores=self.n_jobs)
+    
+    # Set contraint (spectral radius - leaking rate ≤ 0)
+    constraints = [{'name': 'alpha-rho', 'constrain': 'x[:, 3] - x[:, 2]'}]
+    space = GPyOpt.core.task.space.Design_space(bounds, constraints)
+    
+    # Set GP kernel
+    kernel = GPy.kern.Matern52(input_dim=7, ARD=True)
+    gamma_prior = lambda: GPy.priors.Gamma(.001, .001)  # Proper distribution close to Jeffrey's prior
+    kernel.variance.set_prior(gamma_prior())
+    kernel.lengthscale.set_prior(gamma_prior())
+    
+    # Select model and acquisition
+    if self.mcmc_samples is None:
+        acquisition_type = self.acquisition_type
+        model = GPyOpt.models.GPModel(kernel=kernel, 
+                                      max_iters=1000,
+                                      exact_feval=False, 
+                                      normalize_Y=True, 
+                                      optimizer='lbfgs', 
+                                      optimize_restarts=1,
+                                      verbose=self.verbose)
+    else:
+        acquisition_type = self.acquisition_type + '_MCMC'
+        model = GPyOpt.models.gpmodel.GPModel_MCMC(kernel=kernel,  
+                                                   noise_var=None, 
+                                                   exact_feval=False, 
+                                                   normalize_Y=True, 
+                                                   n_samples=self.mcmc_samples, 
+                                                   n_burnin=100, 
+                                                   subsample_interval=2, 
+                                                   step_size=0.2, 
+                                                   leapfrog_steps=20, 
+                                                   verbose=self.verbose)
+    # Set prior on Gaussian Noise
+    model.likelihood.variance.set_prior(gamma_prior())
+    
+    # Set acquisition TODO: Local Penalization
+    acquisition_optimizer = GPyOpt.optimization.AcquisitionOptimizer(space, optimizer='lbfgs')
+    SelectedAcquisition = GPyOpt.acquisitions.select_acquisition(acquisition_type)
+    acquisition = SelectedAcquisition(model=model, space=space, optimizer=acquisition_optimizer)
+    try:
+        # Set jitter to 0 if used
+        acquisition.jitter = 0.
+    except AttributeError:
+        pass
+    
+    # Set initial design
+    initial_x = GPyOpt.util.stats.sample_initial_design('latin', space, self.initial_samples)  # Latin hypercube initialization
+    
+    # Pick evaluator
+    evaluator = GPyOpt.core.evaluators.Predictive(acquisition=acquisition, batch_size=self.batch_size, normalize_Y=True)
+    
+    # Build optimizer
+    update_interval = 5 if self.mcmc_samples is None else 25
+    self.optimizer = GPyOpt.methods.ModularBayesianOptimization(model=model, space=space, objective=objective, 
+                                                                acquisition=acquisition, evaluator=evaluator, 
+                                                                X_init=initial_x, normalize_Y=True, 
+                                                                model_update_interval=update_interval)
+                                 
+    # Show model
+    if self.verbose:
+        print("Model initialization done.", '\n')
+        print(self.optimizer.model.model, '\n')
+    
+    if self.verbose:
+        print("Starting optimization...")
+    
+    # Optimize
+    self.optimizer.run_optimization(eps=self.eps, max_iter=self.max_iterations, max_time=self.max_time, 
+                                    verbosity=self.verbose)
+    
+    # Inform user
+    if self.verbose:        
+        print('Done.')
+        
+    # Purge temporary data references
+    del self.x
+    del self.y
+    
+    # Show convergence
+    self.optimizer.plot_convergence()
+    
+    # Scale arguments
+    best_found = self.denormalize_bounds(self.optimizer.x_opt).T
+    
+    # Store in dict
+    best_arguments = dict(input_scaling=best_found[0], feedback_scaling=best_found[1], leaking_rate=best_found[2], 
+                     spectral_radius=best_found[3], regularization=10.**best_found[4], connectivity=10.**best_found[5], 
+                     n_nodes=best_found[6], random_seed=self.seed, feedback=True)
+    
+    # Save to disk if desired
+    if not store_path is None:
+        with open(store_path, 'w+') as output_file:
+            json.dump(best_arguments, output_file, indent=4)
+    
+    # Return best parameters
+    return best_arguments
         
     def objective_function(self, parameters, train_y, validate_y, train_x=None, validate_x=None):
         """Returns selected error metric on validation set.
