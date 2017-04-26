@@ -905,7 +905,7 @@ def optimize_modular(self, y, x=None, store_path=None):
     del self.y
     
     # Show convergence
-    self.optimizer.plot_convergence()
+    self.optimizer.plot_convergence(filename=store_path + '.convergence.png')
     
     # Scale arguments
     best_found = self.denormalize_bounds(self.optimizer.x_opt).T
