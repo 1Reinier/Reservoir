@@ -829,7 +829,7 @@ class EchoStateNetworkCV:
         
         # Set search space and constraints (spectral radius - leaking rate ≤ 0)
         constraints = [{'name': 'alpha-rho', 'constrain': 'x[:, 3] - x[:, 2]'}]
-        space = GPyOpt.core.task.space.Design_space(bounds, constraints)
+        space = GPyOpt.core.task.space.Design_space(self.bounds, constraints)
         
         # Set GP kernel
         kernel = GPy.kern.Matern52(input_dim=7, ARD=True)
