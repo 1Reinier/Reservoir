@@ -823,10 +823,12 @@ def optimize_modular(self, y, x=None, store_path=None):
     
     # Define objective
     objective = GPyOpt.core.task.SingleObjective(self.objective_sampler, 
+                                                 objective_name = 'ESN Objective',
+                                                 batch_type = 'synchronous',
                                                  batch_size=self.batch_size, 
                                                  num_cores=self.n_jobs)
     
-    # Set contraint (spectral radius - leaking rate ≤ 0)
+    # Set search space and constraints (spectral radius - leaking rate ≤ 0)
     constraints = [{'name': 'alpha-rho', 'constrain': 'x[:, 3] - x[:, 2]'}]
     space = GPyOpt.core.task.space.Design_space(bounds, constraints)
     
