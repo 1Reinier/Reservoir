@@ -825,7 +825,6 @@ class EchoStateNetworkCV:
         objective = GPyOpt.core.task.SingleObjective(self.objective_sampler, 
                                                      objective_name = 'ESN Objective',
                                                      batch_type = 'synchronous',
-                                                     batch_size=self.batch_size, 
                                                      num_cores=self.n_jobs)
         
         # Set search space and constraints (spectral radius - leaking rate ≤ 0)
