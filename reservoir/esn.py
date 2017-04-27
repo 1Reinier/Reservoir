@@ -787,143 +787,143 @@ class EchoStateNetworkCV:
         # Return best parameters
         return best_arguments
         
-def optimize_modular(self, y, x=None, store_path=None):
-    """Performs optimization (with cross-validation).
-    
-    Uses Bayesian Optimization with Gaussian Process priors to optimize ESN hyperparameters.
-    
-    Parameters
-    ----------
-    y : numpy array
-        Array with target values (y-values)
-    
-    x : numpy array or None
-        Optional array with input values (x-values)
-    
-    store_path : str or None
-        Optional path where to store best found parameters to disk (in JSON)
-    
-    Returns
-    -------
-    best_arguments : numpy array
-        The best parameters found during optimization
-    
-    """
-    # Checks
-    self.validate_data(y, x, self.verbose)
-    
-    # Temporarily store the data
-    self.x = x
-    self.y = y
-    
-    # Inform user    
-    if self.verbose:
-        print("Model initialization and exploration run...")
-    
-    
-    # Define objective
-    objective = GPyOpt.core.task.SingleObjective(self.objective_sampler, 
-                                                 objective_name = 'ESN Objective',
-                                                 batch_type = 'synchronous',
-                                                 batch_size=self.batch_size, 
-                                                 num_cores=self.n_jobs)
-    
-    # Set search space and constraints (spectral radius - leaking rate ≤ 0)
-    constraints = [{'name': 'alpha-rho', 'constrain': 'x[:, 3] - x[:, 2]'}]
-    space = GPyOpt.core.task.space.Design_space(bounds, constraints)
-    
-    # Set GP kernel
-    kernel = GPy.kern.Matern52(input_dim=7, ARD=True)
-    gamma_prior = lambda: GPy.priors.Gamma(.001, .001)  # Proper distribution close to Jeffrey's prior
-    kernel.variance.set_prior(gamma_prior())
-    kernel.lengthscale.set_prior(gamma_prior())
-    
-    # Select model and acquisition
-    if self.mcmc_samples is None:
-        acquisition_type = self.acquisition_type
-        model = GPyOpt.models.GPModel(kernel=kernel, 
-                                      max_iters=1000,
-                                      exact_feval=False, 
-                                      normalize_Y=True, 
-                                      optimizer='lbfgs', 
-                                      optimize_restarts=1,
-                                      verbose=self.verbose)
-    else:
-        acquisition_type = self.acquisition_type + '_MCMC'
-        model = GPyOpt.models.gpmodel.GPModel_MCMC(kernel=kernel,  
-                                                   noise_var=None, 
-                                                   exact_feval=False, 
-                                                   normalize_Y=True, 
-                                                   n_samples=self.mcmc_samples, 
-                                                   n_burnin=100, 
-                                                   subsample_interval=2, 
-                                                   step_size=0.2, 
-                                                   leapfrog_steps=20, 
-                                                   verbose=self.verbose)
-    # Set prior on Gaussian Noise
-    model.likelihood.variance.set_prior(gamma_prior())
-    
-    # Set acquisition TODO: Local Penalization
-    acquisition_optimizer = GPyOpt.optimization.AcquisitionOptimizer(space, optimizer='lbfgs')
-    SelectedAcquisition = GPyOpt.acquisitions.select_acquisition(acquisition_type)
-    acquisition = SelectedAcquisition(model=model, space=space, optimizer=acquisition_optimizer)
-    try:
-        # Set jitter to 0 if used
-        acquisition.jitter = 0.
-    except AttributeError:
-        pass
-    
-    # Set initial design
-    initial_x = GPyOpt.util.stats.sample_initial_design('latin', space, self.initial_samples)  # Latin hypercube initialization
-    
-    # Pick evaluator
-    evaluator = GPyOpt.core.evaluators.Predictive(acquisition=acquisition, batch_size=self.batch_size, normalize_Y=True)
-    
-    # Build optimizer
-    update_interval = 5 if self.mcmc_samples is None else 25
-    self.optimizer = GPyOpt.methods.ModularBayesianOptimization(model=model, space=space, objective=objective, 
-                                                                acquisition=acquisition, evaluator=evaluator, 
-                                                                X_init=initial_x, normalize_Y=True, 
-                                                                model_update_interval=update_interval)
-                                 
-    # Show model
-    if self.verbose:
-        print("Model initialization done.", '\n')
-        print(self.optimizer.model.model, '\n')
-    
-    if self.verbose:
-        print("Starting optimization...")
-    
-    # Optimize
-    self.optimizer.run_optimization(eps=self.eps, max_iter=self.max_iterations, max_time=self.max_time, 
-                                    verbosity=self.verbose)
-    
-    # Inform user
-    if self.verbose:        
-        print('Done.')
+    def optimize_modular(self, y, x=None, store_path=None):
+        """Performs optimization (with cross-validation).
         
-    # Purge temporary data references
-    del self.x
-    del self.y
-    
-    # Show convergence
-    self.optimizer.plot_convergence(filename=store_path + '.convergence.png')
-    
-    # Scale arguments
-    best_found = self.denormalize_bounds(self.optimizer.x_opt).T
-    
-    # Store in dict
-    best_arguments = dict(input_scaling=best_found[0], feedback_scaling=best_found[1], leaking_rate=best_found[2], 
-                     spectral_radius=best_found[3], regularization=10.**best_found[4], connectivity=10.**best_found[5], 
-                     n_nodes=best_found[6], random_seed=self.seed, feedback=True)
-    
-    # Save to disk if desired
-    if not store_path is None:
-        with open(store_path, 'w+') as output_file:
-            json.dump(best_arguments, output_file, indent=4)
-    
-    # Return best parameters
-    return best_arguments
+        Uses Bayesian Optimization with Gaussian Process priors to optimize ESN hyperparameters.
+        
+        Parameters
+        ----------
+        y : numpy array
+            Array with target values (y-values)
+        
+        x : numpy array or None
+            Optional array with input values (x-values)
+        
+        store_path : str or None
+            Optional path where to store best found parameters to disk (in JSON)
+        
+        Returns
+        -------
+        best_arguments : numpy array
+            The best parameters found during optimization
+        
+        """
+        # Checks
+        self.validate_data(y, x, self.verbose)
+        
+        # Temporarily store the data
+        self.x = x
+        self.y = y
+        
+        # Inform user    
+        if self.verbose:
+            print("Model initialization and exploration run...")
+        
+        
+        # Define objective
+        objective = GPyOpt.core.task.SingleObjective(self.objective_sampler, 
+                                                     objective_name = 'ESN Objective',
+                                                     batch_type = 'synchronous',
+                                                     batch_size=self.batch_size, 
+                                                     num_cores=self.n_jobs)
+        
+        # Set search space and constraints (spectral radius - leaking rate ≤ 0)
+        constraints = [{'name': 'alpha-rho', 'constrain': 'x[:, 3] - x[:, 2]'}]
+        space = GPyOpt.core.task.space.Design_space(bounds, constraints)
+        
+        # Set GP kernel
+        kernel = GPy.kern.Matern52(input_dim=7, ARD=True)
+        gamma_prior = lambda: GPy.priors.Gamma(.001, .001)  # Proper distribution close to Jeffrey's prior
+        kernel.variance.set_prior(gamma_prior())
+        kernel.lengthscale.set_prior(gamma_prior())
+        
+        # Select model and acquisition
+        if self.mcmc_samples is None:
+            acquisition_type = self.acquisition_type
+            model = GPyOpt.models.GPModel(kernel=kernel, 
+                                          max_iters=1000,
+                                          exact_feval=False, 
+                                          normalize_Y=True, 
+                                          optimizer='lbfgs', 
+                                          optimize_restarts=1,
+                                          verbose=self.verbose)
+        else:
+            acquisition_type = self.acquisition_type + '_MCMC'
+            model = GPyOpt.models.gpmodel.GPModel_MCMC(kernel=kernel,  
+                                                       noise_var=None, 
+                                                       exact_feval=False, 
+                                                       normalize_Y=True, 
+                                                       n_samples=self.mcmc_samples, 
+                                                       n_burnin=100, 
+                                                       subsample_interval=2, 
+                                                       step_size=0.2, 
+                                                       leapfrog_steps=20, 
+                                                       verbose=self.verbose)
+        # Set prior on Gaussian Noise
+        model.likelihood.variance.set_prior(gamma_prior())
+        
+        # Set acquisition TODO: Local Penalization
+        acquisition_optimizer = GPyOpt.optimization.AcquisitionOptimizer(space, optimizer='lbfgs')
+        SelectedAcquisition = GPyOpt.acquisitions.select_acquisition(acquisition_type)
+        acquisition = SelectedAcquisition(model=model, space=space, optimizer=acquisition_optimizer)
+        try:
+            # Set jitter to 0 if used
+            acquisition.jitter = 0.
+        except AttributeError:
+            pass
+        
+        # Set initial design
+        initial_x = GPyOpt.util.stats.sample_initial_design('latin', space, self.initial_samples)  # Latin hypercube initialization
+        
+        # Pick evaluator
+        evaluator = GPyOpt.core.evaluators.Predictive(acquisition=acquisition, batch_size=self.batch_size, normalize_Y=True)
+        
+        # Build optimizer
+        update_interval = 5 if self.mcmc_samples is None else 25
+        self.optimizer = GPyOpt.methods.ModularBayesianOptimization(model=model, space=space, objective=objective, 
+                                                                    acquisition=acquisition, evaluator=evaluator, 
+                                                                    X_init=initial_x, normalize_Y=True, 
+                                                                    model_update_interval=update_interval)
+                                     
+        # Show model
+        if self.verbose:
+            print("Model initialization done.", '\n')
+            print(self.optimizer.model.model, '\n')
+        
+        if self.verbose:
+            print("Starting optimization...")
+        
+        # Optimize
+        self.optimizer.run_optimization(eps=self.eps, max_iter=self.max_iterations, max_time=self.max_time, 
+                                        verbosity=self.verbose)
+        
+        # Inform user
+        if self.verbose:        
+            print('Done.')
+            
+        # Purge temporary data references
+        del self.x
+        del self.y
+        
+        # Show convergence
+        self.optimizer.plot_convergence(filename=store_path + '.convergence.png')
+        
+        # Scale arguments
+        best_found = self.denormalize_bounds(self.optimizer.x_opt).T
+        
+        # Store in dict
+        best_arguments = dict(input_scaling=best_found[0], feedback_scaling=best_found[1], leaking_rate=best_found[2], 
+                         spectral_radius=best_found[3], regularization=10.**best_found[4], connectivity=10.**best_found[5], 
+                         n_nodes=best_found[6], random_seed=self.seed, feedback=True)
+        
+        # Save to disk if desired
+        if not store_path is None:
+            with open(store_path, 'w+') as output_file:
+                json.dump(best_arguments, output_file, indent=4)
+        
+        # Return best parameters
+        return best_arguments
         
     def objective_function(self, parameters, train_y, validate_y, train_x=None, validate_x=None):
         """Returns selected error metric on validation set.
