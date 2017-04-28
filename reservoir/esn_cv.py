@@ -237,7 +237,7 @@ class EchoStateNetworkCV:
                                                              model_type=model_type, 
                                                              acquisition_type=completed_acquisition_type,
                                                              exact_feval=False,
-                                                             normalize_Y = True,
+                                                             normalize_Y=True,
                                                              cost_withGradients=None,
                                                              acquisition_optimizer_type='lbfgs',
                                                              verbosity=self.verbose,
