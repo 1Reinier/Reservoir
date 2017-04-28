@@ -198,6 +198,9 @@ class EchoStateNetworkCV:
         # Checks
         self.validate_data(y, x, self.verbose)
         
+        # Initialize new random state
+        self.random_state = np.random.RandomState(self.seed + 2)
+        
         # Temporarily store the data
         self.x = x
         self.y = y
@@ -234,6 +237,7 @@ class EchoStateNetworkCV:
                                                              model_type=model_type, 
                                                              acquisition_type=completed_acquisition_type,
                                                              exact_feval=False,
+                                                             normalize_Y = True,
                                                              cost_withGradients=None,
                                                              acquisition_optimizer_type='lbfgs',
                                                              verbosity=self.verbose,
@@ -246,6 +250,7 @@ class EchoStateNetworkCV:
         if self.verbose:
             print("Model initialization done.", '\n')
             print(self.optimizer.model.model, '\n')
+            print(self.optimizer.model.model.kern.lengthscale, '\n')
         
         if self.verbose:
             print("Starting optimization...")
@@ -305,6 +310,9 @@ class EchoStateNetworkCV:
         """
         # Checks
         self.validate_data(y, x, self.verbose)
+        
+        # Initialize new random state
+        self.random_state = np.random.RandomState(self.seed + 2)
         
         # Temporarily store the data
         self.x = x
@@ -487,14 +495,11 @@ class EchoStateNetworkCV:
         # Score storage
         scores = np.zeros((self.cv_samples, n_series))
         
-        # Initialize new random state
-        random_state = np.random.RandomState(self.seed + 2)
-        
          # Get samples
         for i in range(self.cv_samples):  # TODO: Can be parallelized
             
             # Get indices
-            start_index = random_state.randint(viable_start, viable_stop)
+            start_index = self.random_state.randint(viable_start, viable_stop)
             train_stop_index = start_index + train_length
             validate_stop_index = train_stop_index + validate_length
             
@@ -514,10 +519,12 @@ class EchoStateNetworkCV:
                 scores[i, n] = self.objective_function(parameters, train_y[:, n].reshape(-1, 1), 
                                                        validate_y[:, n].reshape(-1, 1), train_x, validate_x)
         
-        # Return scores
-        if self.verbose:    
-            print('Objective scores:', scores.ravel())
-        
         # Pass back as a column vector (as required by GPyOpt)
         mean_score = scores.mean().reshape(-1, 1) 
+        
+        # Inform user
+        if self.verbose:    
+            print('Objective mean:', mean_score, 'Scores:', scores.ravel())
+            
+        # Return scores
         return mean_score  
