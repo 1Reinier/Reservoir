@@ -513,7 +513,7 @@ class EchoStateNetwork:
             error = np.sqrt(np.mean(np.square(errors))) / target.ravel().std(ddof=1)
         elif method == 'tanh-nrmse':
             nrmse = np.sqrt(np.mean(np.square(errors))) / target.ravel().std(ddof=1)
-            error = alpha * np.tanh((1. / alpha) * nmse)
+            error = alpha * np.tanh((1. / alpha) * nrmse)
         elif method == 'log':
             mse = np.mean(np.square(errors))
             error = np.log(mse)
