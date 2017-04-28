@@ -516,7 +516,7 @@ class EchoStateNetworkCV:
         
         # Return scores
         if self.verbose:    
-            print('Objective scores:', scores)
+            print('Objective scores:', scores.ravel())
         
         # Pass back as a column vector (as required by GPyOpt)
         mean_score = scores.mean().reshape(-1, 1) 
