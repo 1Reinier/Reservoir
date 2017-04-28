@@ -206,7 +206,12 @@ class EchoStateNetworkCV:
         self.y = y
         
         # Keywords to feed into Bayesian Optimization
-        keyword_arguments = {'kernel': GPy.kern.Matern52(input_dim=7, ARD=True)}
+        gamma_prior = lambda: GPy.priors.Gamma(.001, .001)  
+        kernel = GPy.kern.Matern52(input_dim=7, ARD=True)
+        kernel.variance.set_prior(gamma_prior())
+        kernel.lengthscale.set_prior(gamma_prior())
+
+        keyword_arguments = {'kernel': kernel}
         
         if self.mcmc_samples is None:
             # MLE solution
