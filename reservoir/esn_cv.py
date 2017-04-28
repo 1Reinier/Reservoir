@@ -520,11 +520,11 @@ class EchoStateNetworkCV:
                                                        validate_y[:, n].reshape(-1, 1), train_x, validate_x)
         
         # Pass back as a column vector (as required by GPyOpt)
-        mean_score = scores.mean().reshape(-1, 1) 
+        mean_score = scores.mean()
         
         # Inform user
         if self.verbose:    
             print('Objective mean:', mean_score, 'Scores:', scores.ravel())
             
         # Return scores
-        return mean_score  
+        return mean_score.reshape(-1, 1) 
