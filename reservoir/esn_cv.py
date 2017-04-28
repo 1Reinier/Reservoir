@@ -351,7 +351,7 @@ class EchoStateNetworkCV:
                                                        leapfrog_steps=20, 
                                                        verbose=self.verbose)
             # Set prior on Gaussian Noise
-            model.model.likelihood.variance.set_prior(gamma_prior())
+            #model.model.likelihood.variance.set_prior(gamma_prior())
         
         # Set acquisition TODO: Local Penalization
         acquisition_optimizer = GPyOpt.optimization.AcquisitionOptimizer(space, optimizer='lbfgs')
