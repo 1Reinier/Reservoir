@@ -57,7 +57,6 @@ class EchoStateNetwork:
         self.feedback_scaling = feedback_scaling
         self.spectral_radius = spectral_radius
         self.connectivity = connectivity
-        self.input_scaling = input_scaling
         self.leaking_rate = leaking_rate
         self.regularization = regularization
         self.feedback = feedback
@@ -462,6 +461,7 @@ class EchoStateNetwork:
     def error(self, predicted, target, method='mse', alpha=1.):
         """Evaluates the error between predictions and target values.
         
+        
         Parameters
         ----------
         predicted : array
@@ -516,7 +516,7 @@ class EchoStateNetwork:
             error = alpha * np.tanh((1. / alpha) * nrmse)
         elif method == 'log':
             mse = np.mean(np.square(errors))
-            error = np.log(mse)
+            error = np.log(np.clip(mse, 0., 1e99))
         elif method == 'log-tanh':
             nrmse = np.sqrt(np.mean(np.square(errors))) / target.ravel().std(ddof=1)
             error = np.log(alpha * np.tanh((1. / alpha) * nrmse))
