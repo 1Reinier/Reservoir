@@ -3,3 +3,4 @@ scipy
 GPy
 GPyOpt
 PyDOE
+tensorflow
