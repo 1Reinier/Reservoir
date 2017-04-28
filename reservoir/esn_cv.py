@@ -370,7 +370,7 @@ class EchoStateNetworkCV:
         evaluator = GPyOpt.core.evaluators.Predictive(acquisition=acquisition, batch_size=self.batch_size, normalize_Y=True)
         
         # Build optimizer
-        update_interval = 20 if self.mcmc_samples is None else 1
+        update_interval = 1 if self.mcmc_samples is None else 20
         self.optimizer = GPyOpt.methods.ModularBayesianOptimization(model=model, space=space, objective=objective, 
                                                                     acquisition=acquisition, evaluator=evaluator, 
                                                                     X_init=initial_x, normalize_Y=True, 
