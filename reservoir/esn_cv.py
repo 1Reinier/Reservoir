@@ -206,7 +206,7 @@ class EchoStateNetworkCV:
         self.y = y
         
         # Keywords to feed into Bayesian Optimization
-        gamma_prior = lambda: GPy.priors.Gamma(.001, .001)  
+        gamma_prior = lambda: GPy.priors.Gamma(1., 1.)  
         kernel = GPy.kern.Matern52(input_dim=7, ARD=True)
         kernel.variance.set_prior(gamma_prior())
         kernel.lengthscale.set_prior(gamma_prior())
