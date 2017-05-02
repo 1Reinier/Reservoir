@@ -38,7 +38,7 @@ class RobustGPModel(GPyOpt.models.GPModel):
 
     def _preprocess_data(self, X, Y, infinity_penalty_std=1.):
         # Remove non-finite values
-        finite_mask = np.isfinite(Y.ravel())
+        finite_mask = np.isfinite(Y.ravel()) ##TODO Detect outliers that are not infinite
         infinite_indices = np.nonzero(~finite_mask)[0]
         
         # Replace with mean
