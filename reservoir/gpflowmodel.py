@@ -32,7 +32,7 @@ class GPflowModel(GPyOpt.models.GPModel):
         # Initialize model
         self.input_dim = X.shape[1]
         kernel = GPflow.kernels.Matern52(input_dim=self.input_dim, ARD=True, name="Matern52")
-        self.model = model_class(x, y, kern=kernel, name='Gaussian Process', **kwargs)
+        self.model = model_class(x, y, kern=kernel, name='Gaussian Process', **self.kwargs)
         
         # Set proper prior close to Jeffrey's prior (1 / sigma)
         prior = lambda: GPflow.priors.Gamma(1e-3, 1e3)  # parametrization: k, theta

@@ -1,5 +1,6 @@
 from .esn import *
-from .gpflowmodel import *
+#from .gpflowmodel import *
+from .robustgpmodel import *
 import numpy as np
 import GPy
 import GPyOpt
@@ -341,7 +342,7 @@ class EchoStateNetworkCV:
         # Select model and acquisition
         if self.mcmc_samples is None:
             acquisition_type = self.acquisition_type
-            model = GPflowModel(normalize_Y=True)
+            model = RobustGPModel(normalize_Y=True)
         else:
             acquisition_type = self.acquisition_type + '_MCMC'
             # Set GP kernel
