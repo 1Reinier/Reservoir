@@ -382,7 +382,8 @@ class EchoStateNetworkCV:
             pass
         
         # Set initial design
-        initial_x = GPyOpt.util.stats.sample_initial_design('random', space, self.initial_samples)  # Latin hypercube initialization
+        initial_parameters = np.random.uniform(size=(self.initial_samples, 6))
+        #initial_parameters = GPyOpt.util.stats.sample_initial_design('latin', space, self.initial_samples)  # Latin hypercube initialization
         
         # Pick evaluator
         evaluator = GPyOpt.core.evaluators.Predictive(acquisition=acquisition, batch_size=self.batch_size, normalize_Y=True)
@@ -391,7 +392,7 @@ class EchoStateNetworkCV:
         update_interval = 1 if self.mcmc_samples is None else 20
         self.optimizer = GPyOpt.methods.ModularBayesianOptimization(model=model, space=space, objective=objective, 
                                                                     acquisition=acquisition, evaluator=evaluator, 
-                                                                    X_init=initial_x, normalize_Y=True, 
+                                                                    X_init=initial_parameters, normalize_Y=True, 
                                                                     model_update_interval=update_interval)
                                      
         # Show model
