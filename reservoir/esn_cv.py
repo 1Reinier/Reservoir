@@ -416,7 +416,8 @@ class EchoStateNetworkCV:
         del self.y
         
         # Show convergence
-        self.optimizer.plot_convergence(filename=store_path + '.convergence.png')
+        if not store_path is None:
+            self.optimizer.plot_convergence(filename=store_path + '.convergence.png')
         
         # Scale arguments
         best_found = self.denormalize_bounds(self.optimizer.x_opt).T
