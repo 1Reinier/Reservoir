@@ -369,7 +369,7 @@ class EchoStateNetworkCV:
         
         # Explicitly state model
         if self.verbose:
-            print('Using model:', model.__class__.__name__ '\n')
+            print('Using model:', model.__class__.__name__, '\n')
         
         # Set acquisition TODO: Local Penalization
         acquisition_optimizer = GPyOpt.optimization.AcquisitionOptimizer(space, optimizer='lbfgs')
