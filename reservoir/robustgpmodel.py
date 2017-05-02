@@ -28,12 +28,10 @@ class RobustGPModel(GPyOpt.models.GPModel):
     """
     analytical_gradient_prediction = True 
     
-    def __init__(self, noise_var=None, exact_feval=False, normalize_Y=True, optimizer='bfgs', 
-                 max_iters=1000, verbose=True):
+    def __init__(self, noise_var=None, exact_feval=False, normalize_Y=True, max_iters=1000, verbose=True):
         self.noise_var = noise_var
         self.exact_feval = exact_feval
         self.normalize_Y = normalize_Y
-        self.optimizer = optimizer
         self.max_iters = max_iters
         self.verbose = verbose
         self.model = None
@@ -92,7 +90,7 @@ def updateModel(self, X_all, Y_all, X_new, Y_new):
             self.model.set_XY(X, Y)
             
         # Update model
-        self.model.optimize_restarts(num_restarts=1, optimizer=self.optimizer, max_iters=self.max_iters)
+        self.model.optimize(optimizer='lbfgs', messages=True, max_iters=self.max_iters, ipython_notebook=False, clear_after_finish=True)
 
 
 def predict(self, X):
