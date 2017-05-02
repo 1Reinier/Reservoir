@@ -382,7 +382,7 @@ class EchoStateNetworkCV:
             pass
         
         # Set initial design
-        initial_x = GPyOpt.util.stats.sample_initial_design('latin', space, self.initial_samples)  # Latin hypercube initialization
+        initial_x = GPyOpt.util.stats.sample_initial_design('random', space, self.initial_samples)  # Latin hypercube initialization
         
         # Pick evaluator
         evaluator = GPyOpt.core.evaluators.Predictive(acquisition=acquisition, batch_size=self.batch_size, normalize_Y=True)

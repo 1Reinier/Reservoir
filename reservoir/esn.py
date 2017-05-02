@@ -70,18 +70,14 @@ class EchoStateNetwork:
         random_state = np.random.RandomState(self.seed)
         
         # Set weights and sparsity randomly
-        max_tries = 1000
-        for i in range(max_tries):
-            self.weights = random_state.uniform(-1., 1., size=(self.n_nodes, self.n_nodes))
-            accept = random_state.uniform(size=(self.n_nodes, self.n_nodes)) < self.connectivity
-            self.weights *= accept
-        
-            # Set spectral density
-            max_eigenvalue = np.abs(np.linalg.eigvals(self.weights)).max()
-            if max_eigenvalue > 0:
-                break
-            elif i == max_tries - 1:
-                raise ValueError('Nilpotent reservoirs are not allowed. Increase connectivity and/or number of nodes.')
+        self.weights = random_state.uniform(-1., 1., size=(self.n_nodes, self.n_nodes))
+        accept = random_state.uniform(size=(self.n_nodes, self.n_nodes)) < self.connectivity
+        self.weights *= accept
+    
+        # Set spectral density
+        max_eigenvalue = np.abs(np.linalg.eigvals(self.weights)).max()
+        if max_eigenvalue == 0:
+            raise ValueError('Nilpotent reservoirs are not allowed. Increase connectivity and/or number of nodes.')
         
         # Set spectral radius of weight matrix
         self.weights *= self.spectral_radius / max_eigenvalue
