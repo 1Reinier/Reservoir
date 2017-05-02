@@ -81,8 +81,7 @@ class EchoStateNetwork:
             if max_eigenvalue > 0:
                 break
             elif i == max_tries - 1:
-                raise ValueError('Nilpotent reservoirs are not allowed. \
-                                 Increase connectivity and/or number of nodes.')
+                raise ValueError('Nilpotent reservoirs are not allowed. Increase connectivity and/or number of nodes.')
         
         # Set spectral radius of weight matrix
         self.weights *= self.spectral_radius / max_eigenvalue
@@ -516,7 +515,7 @@ class EchoStateNetwork:
             error = alpha * np.tanh(nrmse / alpha)
         elif method == 'log':
             mse = np.mean(np.square(errors))
-            error = np.log(np.clip(mse, 0., 1e99))
+            error = np.log(mse)
         elif method == 'log-tanh':
             nrmse = np.sqrt(np.mean(np.square(errors))) / target.ravel().std(ddof=1)
             error = np.log(alpha * np.tanh((1. / alpha) * nrmse))

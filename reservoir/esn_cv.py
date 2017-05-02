@@ -281,7 +281,7 @@ class EchoStateNetworkCV:
         
         # Store in dict
         best_arguments = dict(input_scaling=best_found[0], feedback_scaling=best_found[1], leaking_rate=best_found[2], 
-                         spectral_radius=best_found[3], regularization=10.**best_found[4], connectivity=10.**best_found[5], 
+                         spectral_radius=best_found[3], regularization=10.**best_found[4], connectivity=best_found[5], 
                          n_nodes=best_found[6], random_seed=self.seed, feedback=True)
         
         # Save to disk if desired
@@ -362,10 +362,14 @@ class EchoStateNetworkCV:
                                                        n_burnin=100, 
                                                        subsample_interval=2, 
                                                        step_size=0.2, 
-                                                       leapfrog_steps=20, 
+                                                       leapfrog_steps=5, 
                                                        verbose=self.verbose)
-            # Set prior on Gaussian Noise
+            # Set prior on Gaussian Noise # BUG
             #model.model.likelihood.variance.set_prior(gamma_prior())
+        
+        # Explicitly state model
+        if self.verbose:
+            print('Using model:', model.__class__.__name__ '\n')
         
         # Set acquisition TODO: Local Penalization
         acquisition_optimizer = GPyOpt.optimization.AcquisitionOptimizer(space, optimizer='lbfgs')
@@ -418,7 +422,7 @@ class EchoStateNetworkCV:
         
         # Store in dict
         best_arguments = dict(input_scaling=best_found[0], feedback_scaling=best_found[1], leaking_rate=best_found[2], 
-                         spectral_radius=best_found[3], regularization=10.**best_found[4], connectivity=10.**best_found[5], 
+                         spectral_radius=best_found[3], regularization=10.**best_found[4], connectivity=best_found[5], 
                          n_nodes=best_found[6], random_seed=self.seed, feedback=True)
         
         # Save to disk if desired
@@ -457,7 +461,7 @@ class EchoStateNetworkCV:
         # Build network
         esn = EchoStateNetwork(input_scaling=arguments[0], feedback_scaling=arguments[1], leaking_rate=arguments[2], 
                                spectral_radius=arguments[3], regularization=10.**arguments[4], 
-                               connectivity=10.**arguments[5], n_nodes=arguments[6], random_seed=self.seed, 
+                               connectivity=arguments[5], n_nodes=arguments[6], random_seed=self.seed, 
                                feedback=True)
         # Train
         esn.train(x=train_x, y=train_y, burn_in=self.esn_burn_in)

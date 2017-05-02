@@ -21,8 +21,6 @@ class RobustGPModel(GPyOpt.models.GPModel):
     :param optimizer: optimizer of the model. Check GPy for details.
     :param max_iters: maximum number of iterations used to optimize the parameters of the model.
     :param optimize_restarts: number of restarts in the optimization.
-    :param sparse: whether to use a sparse GP (default, False). This is useful when many observations are available.
-    :param num_inducing: number of inducing points if a sparse GP is used.  
     :param verbose: print out the model messages (default, False).
 
     .. Note:: This model does Maximum likelihood estimation of the hyper-parameters.
@@ -50,6 +48,9 @@ class RobustGPModel(GPyOpt.models.GPModel):
             inf_X = X[inf_rows]
             means, stds = self.model.predict(X_inf)
             Y[inf_rows] = means + infinity_penalty_std * stds
+        elif inf_rows.shape[0] > 0:
+            Y = Y[!inf_rows]
+            X = X[!inf_rows]
         
         # Normalize
         if self.normalize_Y:
