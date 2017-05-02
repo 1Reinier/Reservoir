@@ -73,7 +73,7 @@ class RobustGPModel(GPyOpt.models.GPModel):
         
         # Model
         noise_var = Y.var() * 0.01 if self.noise_var is None else self.noise_var
-        self.model = GPy.models.GPRegression(X, Y, kernel=kern, noise_var=noise_var)
+        self.model = GPy.models.GPRegression(X, Y, kernel=kernel, noise_var=noise_var)
         
         # Evaluation constriant
         if self.exact_feval:
