@@ -43,7 +43,7 @@ class GPflowModel(GPyOpt.models.GPModel):
     def updateModel(self, X_all, Y_all, X_new, Y_new):
         "Augment the dataset of the model"
         # Normalize if needed
-        if normalize_Y:
+        if self.normalize_Y:
             mean = Y_all.mean()
             std = Y_all.std(ddof=1)
             Y_all -= mean
