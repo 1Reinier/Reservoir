@@ -10,7 +10,7 @@ import copy
 __all__ = ['RobustGPModel']
 
 
-class RobustGPModel(GPyOpt.models.BOModel):
+class RobustGPModel(GPyOpt.models.GPModel):
     """
     General class for handling a Gaussian Process in GPyOpt. 
 
