@@ -33,7 +33,6 @@ class RobustGPModel(GPyOpt.models.GPModel):
         self.noise_var = noise_var
         self.exact_feval = exact_feval
         self.normalize_Y = normalize_Y
-        self.optimize_restarts = optimize_restarts
         self.optimizer = optimizer
         self.max_iters = max_iters
         self.verbose = verbose
@@ -93,7 +92,7 @@ def updateModel(self, X_all, Y_all, X_new, Y_new):
             self.model.set_XY(X, Y)
             
         # Update model
-        self.model.optimize_restarts(num_restarts=1, optimizer=self.optimizer, max_iters=self.max_iters, verbose=self.verbose)
+        self.model.optimize_restarts(num_restarts=1, optimizer=self.optimizer, max_iters=self.max_iters)
 
 
 def predict(self, X):
