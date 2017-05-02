@@ -41,16 +41,17 @@ class RobustGPModel(GPyOpt.models.GPModel):
 
     def _preprocess_data(self, X, Y, infinity_penalty_std=1.):
         # Remove non-finite values
-        inf_rows = np.nonzero(~np.isfinite(Y))[0]
+        finite_mask = np.isfinite(Y.ravel())
+        infinite_indices = np.nonzero(~finite_mask)[0]
         
         # Replace with mean
-        if not self.model is None and inf_rows.shape[0] > 0:
-            inf_X = X[inf_rows]
+        if not self.model is None and infinite_indices.shape[0] > 0:
+            X_inf = X[infinite_indices]
             means, stds = self.model.predict(X_inf)
-            Y[inf_rows] = means + infinity_penalty_std * stds
-        elif inf_rows.shape[0] > 0:
-            Y = Y[!inf_rows]
-            X = X[!inf_rows]
+            Y[infinite_indices] = means + infinity_penalty_std * stds
+        elif infinite_indices.shape[0] > 0:
+            Y = Y[finite_mask]
+            X = X[finite_mask]
         
         # Normalize
         if self.normalize_Y:
