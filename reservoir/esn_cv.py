@@ -382,7 +382,7 @@ class EchoStateNetworkCV:
             pass
         
         # Set initial design
-        initial_parameters = np.random.uniform(size=(self.initial_samples, 6))
+        initial_parameters = np.random.uniform(size=(self.initial_samples, 7))
         #initial_parameters = GPyOpt.util.stats.sample_initial_design('latin', space, self.initial_samples)  # Latin hypercube initialization
         
         # Pick evaluator
