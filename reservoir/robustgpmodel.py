@@ -29,7 +29,7 @@ class RobustGPModel(GPyOpt.models.GPModel):
     analytical_gradient_prediction = True 
     
     def __init__(self, noise_var=None, exact_feval=False, normalize_Y=True, optimizer='bfgs', 
-                 max_iters=1000, optimize_restarts=1, verbose=True):
+                 max_iters=1000, verbose=True):
         self.noise_var = noise_var
         self.exact_feval = exact_feval
         self.normalize_Y = normalize_Y
@@ -93,10 +93,7 @@ def updateModel(self, X_all, Y_all, X_new, Y_new):
             self.model.set_XY(X, Y)
             
         # Update model
-        if self.optimize_restarts == 1:
-            self.model.optimize(optimizer=self.optimizer, max_iters=self.max_iters)
-        else:
-            self.model.optimize_restarts(num_restarts=self.optimize_restarts, optimizer=self.optimizer, max_iters=self.max_iters, verbose=self.verbose)
+        self.model.optimize_restarts(num_restarts=1, optimizer=self.optimizer, max_iters=self.max_iters, verbose=self.verbose)
 
 
 def predict(self, X):
