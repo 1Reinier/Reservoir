@@ -208,7 +208,7 @@ class EchoStateNetworkCV:
             
         """
         # Denormalize
-        denormalized_values = denormalize_bounds(x)
+        denormalized_values = self.denormalize_bounds(x)
         arguments = dict(zip(self.parameters, denormalized_values))
         
         # Specific edits
