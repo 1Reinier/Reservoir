@@ -20,7 +20,6 @@ class RobustGPModel(GPyOpt.models.GPModel):
     :param normalize_Y: normalization of the outputs to the interval [0,1] (default, True). 
     :param optimizer: optimizer of the model. Check GPy for details.
     :param max_iters: maximum number of iterations used to optimize the parameters of the model.
-    :param optimize_restarts: number of restarts in the optimization.
     :param verbose: print out the model messages (default, False).
 
     .. Note:: This model does Maximum likelihood estimation of the hyper-parameters.
@@ -28,7 +27,7 @@ class RobustGPModel(GPyOpt.models.GPModel):
     """
     analytical_gradient_prediction = True 
     
-    def __init__(self, noise_var=None, exact_feval=False, normalize_Y=True, max_iters=1000, verbose=True):
+    def __init__(self, noise_var=None, exact_feval=False, normalize_Y=True, max_iters=1000, verbose=True, **kwargs):
         self.noise_var = noise_var
         self.exact_feval = exact_feval
         self.normalize_Y = normalize_Y
@@ -37,18 +36,18 @@ class RobustGPModel(GPyOpt.models.GPModel):
         self.model = None
 
     def _preprocess_data(self, X, Y, infinity_penalty_std=1.):
-        # Remove non-finite values
-        finite_mask = np.isfinite(Y.ravel()) ##TODO Detect outliers that are not infinite
-        infinite_indices = np.nonzero(~finite_mask)[0]
-        
-        # Replace with mean
-        if not self.model is None and infinite_indices.shape[0] > 0:
-            X_inf = X[infinite_indices]
-            means, stds = self.model.predict(X_inf)
-            Y[infinite_indices] = means + infinity_penalty_std * stds
-        elif infinite_indices.shape[0] > 0:
-            Y = Y[finite_mask]
-            X = X[finite_mask]
+        # # Remove non-finite values
+        # finite_mask = np.isfinite(Y.ravel()) ##TODO Detect outliers that are not infinite
+        # infinite_indices = np.nonzero(~finite_mask)[0]
+        # 
+        # # Replace with mean
+        # if not self.model is None and infinite_indices.shape[0] > 0:
+        #     X_inf = X[infinite_indices]
+        #     means, stds = self.model.predict(X_inf)
+        #     Y[infinite_indices] = means + infinity_penalty_std * stds
+        # elif infinite_indices.shape[0] > 0:
+        #     Y = Y[finite_mask]
+        #     X = X[finite_mask]
         
         # Normalize
         if self.normalize_Y:

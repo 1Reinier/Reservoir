@@ -1,5 +1,5 @@
 from .esn import *
-#from .gpflowmodel import *
+from .gpflowmodel import *
 from .robustgpmodel import *
 import numpy as np
 import GPy

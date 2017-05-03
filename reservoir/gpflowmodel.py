@@ -16,8 +16,6 @@ class GPflowModel(GPyOpt.models.GPModel):
         Which Gaussian Process model to use
     normalize_Y : bool (default True)
         Normalization on or off
-    **kwargs : dict
-        Extra keywords to pass to the model class in instantiation
     
     """
     analytical_gradient_prediction = True
@@ -26,13 +24,12 @@ class GPflowModel(GPyOpt.models.GPModel):
         self.normalize_Y = normalize_Y
         self.model_class = model_class
         self.model = None
-        self.kwargs = kwargs
         
     def _build_model(self, X, Y):
         # Initialize model
         self.input_dim = X.shape[1]
         kernel = GPflow.kernels.Matern52(input_dim=self.input_dim, ARD=True, name="Matern52")
-        self.model = model_class(x, y, kern=kernel, name='Gaussian Process', **self.kwargs)
+        self.model = model_class(x, y, kern=kernel, name='Gaussian Process')
         
         # Set proper prior close to Jeffrey's prior (1 / sigma)
         prior = lambda: GPflow.priors.Gamma(1e-3, 1e3)  # parametrization: k, theta
@@ -44,10 +41,8 @@ class GPflowModel(GPyOpt.models.GPModel):
         "Augment the dataset of the model"
         # Normalize if needed
         if self.normalize_Y:
-            mean = Y_all.mean()
-            std = Y_all.std(ddof=1)
-            Y_all -= mean
-            Y_all /= std
+            Y_all -= Y_all.mean()
+            Y_all /= Y_all.std(ddof=1)
         
         # Set model
         if self.model is None:
