@@ -6,6 +6,7 @@ import GPy
 import GPyOpt
 import copy
 import json
+from collections import OrderedDict
 
 
 __all__ = ['EchoStateNetworkCV']
@@ -19,12 +20,9 @@ class EchoStateNetworkCV:
     
     Parameters
     ----------
-    bounds : list
-        List of dicts specifying the bounds for optimization. Every dict has to contain entries for the following keys:
-        - name : string
-        - type : {'continuous', 'discrete'}
-        - domain : tuple
-              Tuple with minimum value and maximum value of that parameter.
+    bounds : dict
+        A dictionary specifying the bounds for optimization. The key is the parameter name and the value 
+        is a tuple with minimum value and maximum value of that parameter. E.g. {'n_nodes': (100, 200), ...}
     subsequence_length : int
         Number of samples in one cross-validation sample
     eps : float
@@ -33,10 +31,13 @@ class EchoStateNetworkCV:
         The number of random samples to explore the  before starting optimization
     validate_fraction : float
         The fraction of the data that may be used as a validation set
+    steps_ahead : int or None
+        Number of steps to use in n-step ahead prediction for cross validation. `None` indicates prediction 
+        of all values in the validation array.
     max_iterations : int
         Maximim number of iterations in optimization
     batch_size : int
-        Batch size of samples used by GPyOpt (currently not working due to a bug in GPyOpt)
+        Batch size of samples used by GPyOpt
     cv_samples : int
         Number of samples of the objective function to evaluate for a given parametrization of the ESN
     mcmc_samples : int or None
@@ -60,14 +61,20 @@ class EchoStateNetworkCV:
     """
     
     def __init__(self, bounds, subsequence_length, eps=1e-8, initial_samples=8, validate_fraction=0.2, 
-                 max_iterations=1000, batch_size=1, cv_samples=1, mcmc_samples=None, scoring_method='tanh-nrmse', 
-                 tanh_alpha=1., esn_burn_in=100, acquisition_type='LCB', max_time=np.inf, n_jobs=1, 
-                 random_seed=42, verbose=True):
-        self.bounds = bounds
+                 steps_ahead=None, max_iterations=1000, batch_size=1, cv_samples=1, mcmc_samples=None, 
+                 scoring_method='tanh-nrmse', tanh_alpha=1., esn_burn_in=100, acquisition_type='LCB', 
+                 max_time=np.inf, n_jobs=1, random_seed=42, verbose=True):
+        # Bookkeeping
+        self.bounds = OrderedDict(bounds)  # Fix order
+        self.parameters = self.bounds.keys()
+        self.indices = dict(zip(self.parameters, range(len(self.parameters))))  # Parameter indices
+        
+        # Store settings
         self.subsequence_length = subsequence_length
         self.eps = eps
         self.initial_samples = initial_samples
         self.validate_fraction = validate_fraction
+        self.steps_ahead = steps_ahead
         self.max_iterations = max_iterations
         self.batch_size = batch_size
         self.cv_samples = cv_samples
@@ -83,7 +90,53 @@ class EchoStateNetworkCV:
         
         # Normalize bounds domains and remember transformation
         self.scaled_bounds, self.bound_scalings, self.bound_intercepts = self.normalize_bounds(self.bounds)
+        
+        # Build constraints based on bounds
+        self.constraints = self.build_constraints(self.bounds)
             
+    def build_constraints(self, bounds):
+        """Builds GPy style constraints for the optimization"""
+        constraints = []
+        
+        # Set contraint (spectral radius - leaking rate ≤ 0)
+        if 'leaking_rate' in bounds and 'spectral_radius' in bounds:
+            spectral_index = self.indices('spectral_radius')
+            leaking_index = self.indices('leaking_rate')
+            
+            # Adjust for domain scaling
+            spectral_scale = self.bound_scalings[spectral_index]
+            leaking_scale = self.bound_scalings[leaking_index]
+            
+            # Adjust for intercepts
+            spectral_intercept = self.bound_intercepts[spectral_index]
+            leaking_intercept = self.bound_intercepts[leaking_index]
+            
+            # Add constraint in GPy format
+            constraints += [{'name': 'Spectral ≤ leaking', 'constrain': '{} * x[:, {}] + {} - ({} * x[:, {}] + {})'.format(
+                spectral_scale, spectral_index, spectral_intercept, leaking_scale, leaking_index, leaking_intercept
+            )}]
+        
+        # Set contraint (expected connections in reservoir larger than 1)
+        if 'n_nodes' in bounds and 'connectivity' in bounds:
+            nodes_index = self.indices('n_nodes')
+            connect_index = self.indices('connectivity')
+            
+            # Adjust for domain scaling
+            nodes_scale = self.bound_scalings[nodes_index]
+            connect_scale = self.bound_scalings[connect_index]
+            
+            # Adjust for intercepts
+            nodes_intercept = self.bound_intercepts[nodes_index]
+            connect_intercept = self.bound_intercepts[connect_index]
+            
+            # Add constraint in GPy format
+            constraints += [{'name': '-Expected connections ≤ -1', 'constrain': '-({} * x[:, {}] + {}) * ({} * x[:, {}] + {})'.format(
+                nodes_scale, nodes_index, nodes_intercept, connect_scale, connect_index, connect_intercept
+            )}]
+            
+        return constraints if len(constraints) > 0 else None
+                                   
+    
     def normalize_bounds(self, bounds):
         """Makes sure all bounds feeded into GPyOpt are scaled to the domain [0, 1], 
         to aid interpretation of convergence plots. 
@@ -92,41 +145,40 @@ class EchoStateNetworkCV:
         
         Parameters
         ----------
-        bounds : list of dicts
-            Contains dicts of GPyOpt boundary information
+        bounds : dicts
+            Contains dicts with boundary information
             
         Returns
         -------
-        scaled_bounds, bound_scalings, bound_intercepts : tuple
-            Contains scaled bounds (dict), the scaling applied (numpy array) and an intercept 
-            (numpy array) to transform values back to their original domain
+        scaled_bounds, scalings, intercepts : tuple
+            Contains scaled bounds (list of dicts in GPy style), the scaling applied (numpy array) 
+            and an intercept (numpy array) to transform values back to their original domain
             
         """
         scaled_bounds = []
-        bound_scalings = []
-        bound_intercepts = []
-        for bound in bounds:
+        scalings = []
+        intercepts = []
+        for name, domain in self.bounds.items():
             # Get scaling
-            lower_bound = min(bound['domain'])
-            upper_bound = max(bound['domain'])
+            lower_bound = min(domain)
+            upper_bound = max(domain)
             scale = upper_bound - lower_bound
             
-            # Transform
-            scaled_bound = copy.deepcopy(bound)
-            scaled_bound['domain'] = tuple(map(lambda value: (value - lower_bound) / scale, bound['domain']))
+            # Transform to [0, 1] domain
+            scaled_bound = {'name': name, 'type': 'continuous', domain: (0., 1.)}
             
             # Store
             scaled_bounds.append(scaled_bound)
-            bound_scalings.append(scale)
-            bound_intercepts.append(lower_bound)
-        return scaled_bounds, np.array(bound_scalings), np.array(bound_intercepts)
+            scalings.append(scale)
+            intercepts.append(lower_bound)
+        return scaled_bounds, np.array(scalings), np.array(intercepts)
     
     def denormalize_bounds(self, normalized_arguments):
         """Denormalize arguments to feed into model.
         
         Parameters
         ----------
-        normalized_arguments : 1-D numpy array
+        normalized_arguments : numpy array
             Contains arguments in same order as bounds
             
         Returns
@@ -135,9 +187,37 @@ class EchoStateNetworkCV:
             Array with denormalized arguments
         
         """
-        denormalized_bounds = (normalized_arguments * self.bound_scalings) + self.bound_intercepts
+        denormalized_bounds = (normalized_arguments.ravel() * self.bound_scalings) + self.bound_intercepts
         return denormalized_bounds
         
+    def construct_arguments(self, x):
+        """Constructs arguments for ESN input from input array.
+        
+        Does so by denormalizing and adding arguments not involved in optimization,
+        like the random seed.
+        
+        Parameters
+        ----------
+        x : 1-D numpy array
+            Array containing normalized parameter values
+        
+        Returns
+        -------
+        arguments : dict
+            Arguments that can be fed into an ESN
+            
+        """
+        # Denormalize
+        denormalized_values = denormalize_bounds(x)
+        arguments = dict(zip(self.parameters, denormalized_values))
+        
+        # Specific edits
+        arguments['random_seed'] = self.seed
+        if 'regularization' in arguments:
+            arguments['regularization'] = 10. ** arguments['regularization']  # Log scale
+            
+        return arguments
+    
     def validate_data(self, y, x=None, verbose=True):
         """Validates inputted data against errors in shape and common mistakes.
         
@@ -226,11 +306,8 @@ class EchoStateNetworkCV:
             
         if self.batch_size > 1:
             # Add more exploration if batch size is larger than 1
-            #keyword_arguments['evaluator_type'] = 'local_penalization'  # BUG: GPyOpt cannot parallelize this
+            #keyword_arguments['evaluator_type'] = 'local_penalization'  # BUG: convergence is not consistent
             pass
-            
-        # Set contraint (spectral radius - leaking rate ≤ 0)
-        constraints = [{'name': 'alpha-rho', 'constrain': 'x[:, 3] - x[:, 2]'}]
         
         if self.verbose:
             print("Model initialization and exploration run...")
@@ -239,7 +316,7 @@ class EchoStateNetworkCV:
         self.optimizer = GPyOpt.methods.BayesianOptimization(f=self.objective_sampler,
                                                              domain=self.scaled_bounds,
                                                              initial_design_numdata=self.initial_samples,
-                                                             constrains=constraints, 
+                                                             constrains=self.constraints, 
                                                              model_type=model_type, 
                                                              acquisition_type=completed_acquisition_type,
                                                              exact_feval=False,
@@ -276,13 +353,8 @@ class EchoStateNetworkCV:
         # Show convergence
         self.optimizer.plot_convergence()
         
-        # Scale arguments
-        best_found = self.denormalize_bounds(self.optimizer.x_opt).T
-        
         # Store in dict
-        best_arguments = dict(input_scaling=best_found[0], feedback_scaling=best_found[1], leaking_rate=best_found[2], 
-                         spectral_radius=best_found[3], regularization=10.**best_found[4], connectivity=best_found[5], 
-                         n_nodes=best_found[6], random_seed=self.seed, feedback=True)
+        best_arguments = self.construct_arguments(self.optimizer.x_opt)
         
         # Save to disk if desired
         if not store_path is None:
@@ -336,8 +408,7 @@ class EchoStateNetworkCV:
                                                      num_cores=self.n_jobs)
         
         # Set search space and constraints (spectral radius - leaking rate ≤ 0)
-        constraints = [{'name': 'alpha-rho', 'constrain': 'x[:, 3] - x[:, 2]'}]
-        space = GPyOpt.core.task.space.Design_space(self.bounds, constraints)
+        space = GPyOpt.core.task.space.Design_space(self.bounds, self.constraints)
         
         # Select model and acquisition
         if self.mcmc_samples is None:
@@ -375,8 +446,9 @@ class EchoStateNetworkCV:
         acquisition_optimizer = GPyOpt.optimization.AcquisitionOptimizer(space, optimizer='lbfgs')
         SelectedAcquisition = GPyOpt.acquisitions.select_acquisition(acquisition_type)
         acquisition = SelectedAcquisition(model=model, space=space, optimizer=acquisition_optimizer)
+        
+        # Set jitter to low number if used
         try:
-            # Set jitter to 0 if used
             acquisition.jitter = 1e-6
         except AttributeError:
             pass
@@ -423,9 +495,7 @@ class EchoStateNetworkCV:
         best_found = self.denormalize_bounds(self.optimizer.x_opt).T
         
         # Store in dict
-        best_arguments = dict(input_scaling=best_found[0], feedback_scaling=best_found[1], leaking_rate=best_found[2], 
-                         spectral_radius=best_found[3], regularization=10.**best_found[4], connectivity=best_found[5], 
-                         n_nodes=best_found[6], random_seed=self.seed, feedback=True)
+        best_arguments = self.construct_arguments(best_found)
         
         # Save to disk if desired
         if not store_path is None:
@@ -458,13 +528,10 @@ class EchoStateNetworkCV:
         
         """
         # Get arguments
-        arguments = self.denormalize_bounds(parameters).T
+        arguments = self.construct_arguments(parameters)
 
         # Build network
-        esn = EchoStateNetwork(input_scaling=arguments[0], feedback_scaling=arguments[1], leaking_rate=arguments[2], 
-                               spectral_radius=arguments[3], regularization=10.**arguments[4], 
-                               connectivity=arguments[5], n_nodes=arguments[6], random_seed=self.seed, 
-                               feedback=True)
+        esn = EchoStateNetwork(**arguments)
         # Train
         esn.train(x=train_x, y=train_y, burn_in=self.esn_burn_in)
 
