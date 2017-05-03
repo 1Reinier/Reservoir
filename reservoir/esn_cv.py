@@ -407,8 +407,8 @@ class EchoStateNetworkCV:
                                                      batch_type='synchronous',
                                                      num_cores=self.n_jobs)
         
-        # Set search space and constraints (spectral radius - leaking rate ≤ 0)
-        space = GPyOpt.core.task.space.Design_space(self.bounds, self.constraints)
+        # Set search space and constraints
+        space = GPyOpt.core.task.space.Design_space(self.scaled_bounds, self.constraints)
         
         # Select model and acquisition
         if self.mcmc_samples is None:
