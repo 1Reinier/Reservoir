@@ -10,7 +10,7 @@ import copy
 __all__ = ['RobustGPModel']
 
 
-class RobustGPModel:
+class RobustGPModel(GPyOpt.models.GPModel):
     """
     General class for handling a Gaussian Process in GPyOpt. 
 
@@ -28,6 +28,7 @@ class RobustGPModel:
     analytical_gradient_prediction = True 
     
     def __init__(self, noise_var=None, exact_feval=False, normalize_Y=True, max_iters=1000, verbose=True, **kwargs):
+        super().__init__()
         self.noise_var = noise_var
         self.exact_feval = exact_feval
         self.normalize_Y = normalize_Y
