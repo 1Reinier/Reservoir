@@ -36,18 +36,18 @@ class RobustGPModel:
         self.model = None
 
     def _preprocess_data(self, X, Y, infinity_penalty_std=1.):
-        # # Remove non-finite values
-        # finite_mask = np.isfinite(Y.ravel()) ##TODO Detect outliers that are not infinite
-        # infinite_indices = np.nonzero(~finite_mask)[0]
-        # 
-        # # Replace with mean
-        # if not self.model is None and infinite_indices.shape[0] > 0:
-        #     X_inf = X[infinite_indices]
-        #     means, stds = self.model.predict(X_inf)
-        #     Y[infinite_indices] = means + infinity_penalty_std * stds
-        # elif infinite_indices.shape[0] > 0:
-        #     Y = Y[finite_mask]
-        #     X = X[finite_mask]
+        # Remove non-finite values
+        finite_mask = np.isfinite(Y.ravel()) ##TODO Detect outliers that are not infinite
+        infinite_indices = np.nonzero(~finite_mask)[0]
+        
+        # Replace with mean
+        if not self.model is None and infinite_indices.shape[0] > 0:
+            X_inf = X[infinite_indices]
+            means, stds = self.model.predict(X_inf)
+            Y[infinite_indices] = means + infinity_penalty_std * stds
+        elif infinite_indices.shape[0] > 0:
+            Y = Y[finite_mask]
+            X = X[finite_mask]
         
         # Normalize
         if self.normalize_Y:
@@ -77,67 +77,67 @@ class RobustGPModel:
         else: 
             self.model.Gaussian_noise.constrain_positive(warning=False)
             
-def updateModel(self, X_all, Y_all, X_new, Y_new):
-        """
-        Updates the model with new observations.
-        """
-        X, Y = self._preprocess_data(X_all, Y_all)
-        
-        if self.model is None: 
-            self._create_model(X, Y)
-        else: 
-            self.model.set_XY(X, Y)
+    def updateModel(self, X_all, Y_all, X_new, Y_new):
+            """
+            Updates the model with new observations.
+            """
+            X, Y = self._preprocess_data(X_all, Y_all)
             
-        # Update model
-        self.model.optimize(optimizer='lbfgs', messages=True, max_iters=self.max_iters, ipython_notebook=False, clear_after_finish=True)
+            if self.model is None: 
+                self._create_model(X, Y)
+            else: 
+                self.model.set_XY(X, Y)
+                
+            # Update model
+            self.model.optimize(optimizer='lbfgs', messages=True, max_iters=self.max_iters, ipython_notebook=False, clear_after_finish=True)
 
 
-def predict(self, X):
-        """
-        Predictions with the model. Returns posterior means and standard deviations at X. Note that this is different in GPy where the variances are given. 
-        """
-        if X.ndim==1: X = X[None,:]
-        m, v = self.model.predict(X)
-        v = np.clip(v, 1e-10, np.inf)
-        return m, np.sqrt(v)
+    def predict(self, X):
+            """
+            Predictions with the model. Returns posterior means and standard deviations at X. Note that this is different in GPy where the variances are given. 
+            """
+            if X.ndim==1: X = X[None,:]
+            m, v = self.model.predict(X)
+            v = np.clip(v, 1e-10, np.inf)
+            return m, np.sqrt(v)
 
 
-def get_fmin(self):
-        """
-        Returns the location where the posterior mean is takes its minimal value.
-        """
-        return self.model.predict(self.model.X)[0].min()
+    def get_fmin(self):
+            """
+            Returns the location where the posterior mean is takes its minimal value.
+            """
+            return self.model.predict(self.model.X)[0].min()
 
-    
-def predict_withGradients(self, X):
-        """
-        Returns the mean, standard deviation, mean gradient and standard deviation gradient at X.
-        """
-        if X.ndim==1: X = X[None,:]
-        m, v = self.model.predict(X)
-        v = np.clip(v, 1e-10, np.inf)
-        dmdx, dvdx = self.model.predictive_gradients(X)
-        dmdx = dmdx[:,:,0]
-        dsdx = dvdx / (2*np.sqrt(v))
-        return m, np.sqrt(v), dmdx, dsdx
-
-
-def copy(self):
-        """
-        Makes a safe copy of the model.
-        """
-        return copy.deepcopy(self)
+        
+    def predict_withGradients(self, X):
+            """
+            Returns the mean, standard deviation, mean gradient and standard deviation gradient at X.
+            """
+            if X.ndim==1: X = X[None,:]
+            m, v = self.model.predict(X)
+            v = np.clip(v, 1e-10, np.inf)
+            dmdx, dvdx = self.model.predictive_gradients(X)
+            dmdx = dmdx[:,:,0]
+            dsdx = dvdx / (2*np.sqrt(v))
+            return m, np.sqrt(v), dmdx, dsdx
 
 
-def get_model_parameters(self):
-        """
-        Returns a 2D numpy array with the parameters of the model
-        """
-        return np.atleast_2d(self.model[:])
+    def copy(self):
+            """
+            Makes a safe copy of the model.
+            """
+            return copy.deepcopy(self)
 
 
-def get_model_parameters_names(self):
-        """
-        Returns a list with the names of the parameters of the model
-        """
-        return self.model.parameter_names()
+    def get_model_parameters(self):
+            """
+            Returns a 2D numpy array with the parameters of the model
+            """
+            return np.atleast_2d(self.model[:])
+
+
+    def get_model_parameters_names(self):
+            """
+            Returns a list with the names of the parameters of the model
+            """
+            return self.model.parameter_names()
