@@ -100,8 +100,8 @@ class EchoStateNetworkCV:
         
         # Set contraint (spectral radius - leaking rate ≤ 0)
         if 'leaking_rate' in bounds and 'spectral_radius' in bounds:
-            spectral_index = self.indices('spectral_radius')
-            leaking_index = self.indices('leaking_rate')
+            spectral_index = self.indices['spectral_radius']
+            leaking_index = self.indices['leaking_rate']
             
             # Adjust for domain scaling
             spectral_scale = self.bound_scalings[spectral_index]
@@ -118,8 +118,8 @@ class EchoStateNetworkCV:
         
         # Set contraint (expected connections in reservoir larger than 1)
         if 'n_nodes' in bounds and 'connectivity' in bounds:
-            nodes_index = self.indices('n_nodes')
-            connect_index = self.indices('connectivity')
+            nodes_index = self.indices['n_nodes']
+            connect_index = self.indices['connectivity']
             
             # Adjust for domain scaling
             nodes_scale = self.bound_scalings[nodes_index]

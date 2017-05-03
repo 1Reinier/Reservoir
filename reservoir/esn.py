@@ -70,7 +70,7 @@ class EchoStateNetwork:
         random_state = np.random.RandomState(self.seed)
         
         # Set weights and sparsity randomly
-        max_tries = 100  # Will usually finish on the first iteration
+        max_tries = 1000  # Will usually finish on the first iteration
         for i in range(max_tries):
             self.weights = random_state.uniform(-1., 1., size=(self.n_nodes, self.n_nodes))
             accept = random_state.uniform(size=(self.n_nodes, self.n_nodes)) < self.connectivity
