@@ -7,7 +7,7 @@ import copy
 __all__ = ['GPflowModel'] # TODO: MCMC
 
 
-class GPflowModel(GPyOpt.models.GPModel):
+class GPflowModel:
     """GPModel class tailored towards Echo State Network optimization.
     
     Parameters
