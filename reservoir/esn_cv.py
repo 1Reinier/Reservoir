@@ -165,7 +165,7 @@ class EchoStateNetworkCV:
             scale = upper_bound - lower_bound
             
             # Transform to [0, 1] domain
-            scaled_bound = {'name': name, 'type': 'continuous', domain: (0., 1.)}
+            scaled_bound = {'name': name, 'type': 'continuous', 'domain': (0., 1.)}
             
             # Store
             scaled_bounds.append(scaled_bound)
