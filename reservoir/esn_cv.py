@@ -466,6 +466,7 @@ class EchoStateNetworkCV:
                                                                     acquisition=acquisition, evaluator=evaluator, 
                                                                     X_init=initial_parameters, normalize_Y=True, 
                                                                     model_update_interval=update_interval)
+        self.optimizer.modular_optimization = True
                                      
         # Show model
         if self.verbose:
