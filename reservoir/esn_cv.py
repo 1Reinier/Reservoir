@@ -92,7 +92,7 @@ class EchoStateNetworkCV:
         self.scaled_bounds, self.bound_scalings, self.bound_intercepts = self.normalize_bounds(self.bounds)
         
         # Build constraints based on bounds
-        self.constraints = self.build_constraints(self.bounds)
+        self.constraints = None  # self.build_constraints(self.bounds)
             
     def build_constraints(self, bounds):
         """Builds GPy style constraints for the optimization"""
