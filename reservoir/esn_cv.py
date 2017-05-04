@@ -546,7 +546,8 @@ class EchoStateNetworkCV:
         esn.train(x=train_x, y=train_y, burn_in=self.esn_burn_in)
 
         # Validation score
-        score = esn.test(x=validate_x, y=validate_y, scoring_method=self.scoring_method, alpha=self.alpha)
+        score = esn.test(x=validate_x, y=validate_y, scoring_method=self.scoring_method, 
+                         steps_ahead=self.steps_ahead, alpha=self.alpha)
         return score
 
     def objective_sampler(self, parameters):
