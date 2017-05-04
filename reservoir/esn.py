@@ -499,10 +499,10 @@ class EchoStateNetwork:
         
         """      
         # Return error based on choices
-        if y.shape[0] == 1:
+        if predicted.shape[1] == 1:
             errors = predicted.ravel() - target.ravel()
         else:
-            
+            pass
         
         # Adjust for NaN and np.inf in predictions (unstable solution)
         if not np.all(np.isfinite(predicted)):
