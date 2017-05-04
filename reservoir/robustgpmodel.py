@@ -68,8 +68,6 @@ class RobustGPModel(GPyOpt.models.GPModel):
         kernel.lengthscale.set_prior(prior())
         kernel.variance.set_prior(prior())
         
-        noise_var = 
-        
         # Model
         noise_var = np.square(Y[:30].std(ddof=1)) if self.noise_var is None else self.noise_var
         self.model = GPy.models.GPRegression(X, Y, kernel=kernel, noise_var=noise_var)
@@ -93,7 +91,7 @@ class RobustGPModel(GPyOpt.models.GPModel):
                 self.model.set_XY(X, Y)
                 
             # Update model
-            self.model.optimize(optimizer='lbfgs', messages=False, max_iters=self.max_iters, ipython_notebook=False, clear_after_finish=True)
+            self.model.optimize(optimizer='lbfgs', messages=False, max_iters=self.max_iters, ipython_notebook=True, clear_after_finish=True)
 
 
     def predict(self, X):
