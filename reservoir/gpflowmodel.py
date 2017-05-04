@@ -21,7 +21,7 @@ class GPflowModel(GPyOpt.models.GPModel):
     analytical_gradient_prediction = True
     
     def __init__(self, model_class=GPflow.gpr.GPR, normalize_Y=True, **kwargs):
-        super()__init__()
+        super().__init__()
         self.normalize_Y = normalize_Y
         self.model_class = model_class
         self.model = None
