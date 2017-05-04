@@ -66,7 +66,7 @@ class EchoStateNetworkCV:
                  max_time=np.inf, n_jobs=1, random_seed=42, verbose=True):
         # Bookkeeping
         self.bounds = OrderedDict(bounds)  # Fix order
-        self.parameters = self.bounds.keys()
+        self.parameters = list(self.bounds.keys())
         self.indices = dict(zip(self.parameters, range(len(self.parameters))))  # Parameter indices
         
         # Store settings
@@ -359,9 +359,6 @@ class EchoStateNetworkCV:
         del self.x
         del self.y
         
-        # Show convergence
-        self.optimizer.plot_convergence()
-        
         # Store in dict
         best_arguments = self.construct_arguments(self.optimizer.x_opt)
         
@@ -369,6 +366,9 @@ class EchoStateNetworkCV:
         if not store_path is None:
             with open(store_path, 'w+') as output_file:
                 json.dump(best_arguments, output_file, indent=4)
+        
+        # Show convergence
+        self.optimizer.plot_convergence()
         
         # Return best parameters
         return best_arguments
@@ -501,12 +501,9 @@ class EchoStateNetworkCV:
         # Show convergence
         if not store_path is None:
             self.optimizer.plot_convergence(filename=store_path + '.convergence.png')
-        
-        # Scale arguments
-        best_found = self.denormalize_bounds(self.optimizer.x_opt).T
-        
+            
         # Store in dict
-        best_arguments = self.construct_arguments(best_found)
+        best_arguments = self.construct_arguments(self.optimizer.x_opt)
         
         # Save to disk if desired
         if not store_path is None:
