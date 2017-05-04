@@ -231,11 +231,11 @@ class EchoStateNetwork:
         # Build inputs
         inputs = np.ones((rows, 1))  # Add bias for all t = 0, ..., T
         
+        print(rows, x.shape[0], inputs.shape)
+        
         # Add data inputs if present
         if not x is None:
             inputs = np.hstack((inputs, x[start_index:]))  # Add data inputs
-        
-        print(rows, x.shape[0])
             
         # Set and scale input weights (for memory length and non-linearity)
         self.in_weights = self.input_scaling * random_state.uniform(-1, 1, size=(self.n_nodes, inputs.shape[1]))
