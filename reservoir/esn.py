@@ -506,7 +506,11 @@ class EchoStateNetwork:
         if predicted.shape[1] == 1:
             errors = predicted.ravel() - target.ravel()
         else:
-            pass
+            # Multiple prediction columns
+            errors = np.zeros(predicted.shape)
+            for i in steps_ahead:
+                predictions = predicted[:, i]
+                errors[:, i] = predictions.ravel()[:-i] - target.ravel()[i:]
         
         # Adjust for NaN and np.inf in predictions (unstable solution)
         if not np.all(np.isfinite(predicted)):
