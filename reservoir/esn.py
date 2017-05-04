@@ -400,6 +400,10 @@ class EchoStateNetwork:
         
         # Timesteps in y
         t_steps = y.shape[0]
+        
+        # Check input
+        if not x.shape[0] == t_steps:
+            raise ValueError('x has the wrong size for prediction: x.shape[0] = {}, while y.shape[0] = {}'.format(x.shape[0], t_steps))
 
         # Choose correct input
         if x is None and not self.feedback:
@@ -413,7 +417,7 @@ class EchoStateNetwork:
             inputs = np.ones((t_steps + steps_ahead, 1))  # Add bias term
             
         # Run until we have no further inputs
-        time_length = t_steps if x is None else t_steps - steps_ahead
+        time_length = t_steps if x is None else t_steps - steps_ahead + 1
         
         # Set parameters
         y_predicted = np.zeros((time_length, steps_ahead))
@@ -481,7 +485,7 @@ class EchoStateNetwork:
             Alpha coefficient to scale the tanh error transformation: alpha * tanh{(1 / alpha) * error}.
             This squeezes errors onto the interval [0, alpha].
             Default is 1. Suggestions for squeezing errors > n * stddev of the original series 
-            (for tanh-nrmse, this si the point after which difference with y = x is larger than 50%,
+            (for tanh-nrmse, this is the point after which difference with y = x is larger than 50%,
              and squeezing kicks in):
              n  |  alpha
             ------------
