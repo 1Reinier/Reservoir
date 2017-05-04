@@ -265,7 +265,7 @@ class EchoStateNetwork:
         # Return all data for computation or visualization purposes (Note: these are normalized)
         return complete_data, (y[1:] if self.feedback else y), burn_in
             
-    def test(self, y, x=None, y_start=None, scoring_method='mse', alpha=1.):
+    def test(self, y, x=None, y_start=None, steps_ahead=None, scoring_method='mse', alpha=1.):
         """Tests and scores against known output.
         
         Parameters
@@ -276,6 +276,8 @@ class EchoStateNetwork:
             Any inputs if required
         y_start : float or None
             Starting value from which to start testing. If None, last stored value from trainging will be used
+        steps_ahead : int or None
+            Computes average error on n steps ahead prediction. If `None` all steps in y will be used.
         scoring_method : {'mse', 'rmse', 'nrmse', 'tanh'}
             Evaluation metric used to calculate error
         alpha : float
@@ -288,8 +290,12 @@ class EchoStateNetwork:
         
         """
         # Run prediction
-        y_predicted = self.predict(y.shape[0], x, y_start=y_start)
-        
+        final_t = y.shape[0]
+        if steps_ahead is None:
+            y_predicted = self.predict(final_t x, y_start=y_start)
+        else:
+            y_predicted = self.predict_stepwise(y, x, steps_ahead=steps_ahead, y_start=y_start)[:final_t]
+            
         # Return error
         return self.error(y_predicted, y, scoring_method, alpha=alpha)
     
@@ -493,13 +499,17 @@ class EchoStateNetwork:
         
         """      
         # Return error based on choices
-        errors = predicted.ravel() - target.ravel()
+        if y.shape[0] == 1:
+            errors = predicted.ravel() - target.ravel()
+        else:
+            
         
         # Adjust for NaN and np.inf in predictions (unstable solution)
-        # if not np.all(np.isfinite(predicted)):
-        #     print("Warning: some predicted values are not finite")
-        #     errors = np.inf
+        if not np.all(np.isfinite(predicted)):
+            # print("Warning: some predicted values are not finite")
+            errors = np.inf
         
+        # Compute mean error
         if method == 'mse':
             error = np.mean(np.square(errors))
         elif method == 'tanh':
