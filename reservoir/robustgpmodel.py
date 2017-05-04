@@ -64,7 +64,7 @@ class RobustGPModel(GPyOpt.models.GPModel):
         # Kernel and priors
         self.input_dim = X.shape[1]
         kernel = GPy.kern.Matern52(self.input_dim, ARD=True)
-        prior = lambda: GPy.priors.Gamma(1e-3, 1e-3)
+        prior = lambda: GPy.priors.inverse_gamma(1e-3, 1e-3)
         kernel.lengthscale.set_prior(prior())
         kernel.variance.set_prior(prior())
         
