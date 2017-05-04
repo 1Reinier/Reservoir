@@ -472,6 +472,7 @@ class EchoStateNetworkCV:
         if self.verbose:
             print("Model initialization done.", '\n')
             print(self.optimizer.model.model, '\n')
+            print(self.optimizer.model.model.kern.lengthscale, '\n')
         
         if self.verbose:
             print("Starting optimization...")
@@ -502,6 +503,9 @@ class EchoStateNetworkCV:
         if not store_path is None:
             with open(store_path, 'w+') as output_file:
                 json.dump(best_arguments, output_file, indent=4)
+        
+        # Show convergence
+        self.optimizer.plot_convergence()
         
         # Return best parameters
         return best_arguments

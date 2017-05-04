@@ -73,7 +73,7 @@ class RobustGPModel(GPyOpt.models.GPModel):
         self.model = GPy.models.GPRegression(X, Y, kernel=kernel, noise_var=noise_var)
         
         # Evaluation constriant
-        if self.exact_feval:
+        if self.exact_feval or noise_var < 1e-6:
             self.model.Gaussian_noise.constrain_fixed(1e-6, warning=False)
         else: 
             self.model.Gaussian_noise.constrain_positive(warning=False)
@@ -90,7 +90,7 @@ class RobustGPModel(GPyOpt.models.GPModel):
                 self.model.set_XY(X, Y)
                 
             # Update model
-            self.model.optimize(optimizer='lbfgs', messages=True, max_iters=self.max_iters, ipython_notebook=False, clear_after_finish=True)
+            self.model.optimize(optimizer='lbfgs', messages=False, max_iters=self.max_iters, ipython_notebook=False, clear_after_finish=True)
 
 
     def predict(self, X):
