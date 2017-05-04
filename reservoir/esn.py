@@ -222,8 +222,8 @@ class EchoStateNetwork:
         current_state = self.state[-1]  # From default or pretrained state
         
         # Calculate correct shape based on feedback (feedback means one row less)
-        rows = y.shape[0] - 1 if self.feedback else y.shape[0]
         start_index = 1 if self.feedback else 0  # Convenience index
+        rows = y.shape[0] - start_index
         
         # Build state matrix
         self.state = np.zeros((rows, self.n_nodes))
@@ -234,6 +234,8 @@ class EchoStateNetwork:
         # Add data inputs if present
         if not x is None:
             inputs = np.hstack((inputs, x[start_index:]))  # Add data inputs
+        
+        print(rows, x.shape[0])
             
         # Set and scale input weights (for memory length and non-linearity)
         self.in_weights = self.input_scaling * random_state.uniform(-1, 1, size=(self.n_nodes, inputs.shape[1]))
