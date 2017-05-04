@@ -5,6 +5,9 @@ import numpy as np
 import GPyOpt
 import GPy
 import copy
+from scipy.special import gammaln, digamma
+from paramz.domains import _REAL, _POSITIVE
+
 
 
 __all__ = ['RobustGPModel']
@@ -64,14 +67,14 @@ class RobustGPModel(GPyOpt.models.GPModel):
         # Kernel and priors
         self.input_dim = X.shape[1]
         kernel = GPy.kern.Matern52(self.input_dim, ARD=True)
-        prior = lambda: GPy.priors.Gamma(0, 0)
-        kernel.lengthscale.set_prior(prior())
-        kernel.variance.set_prior(prior())
+        prior = FixedInverseGamma(.001, .001)
+        kernel.lengthscale.set_prior(prior)
+        kernel.variance.set_prior(prior)
         
         # Model
         noise_var = np.square(Y[:30].std(ddof=1)) if self.noise_var is None else self.noise_var
         self.model = GPy.models.GPRegression(X, Y, kernel=kernel, noise_var=noise_var)
-        self.model.likelihood.variance.set_prior(prior())
+        self.model.likelihood.variance.set_prior(prior)
         
         # Evaluation constriant
         if self.exact_feval or noise_var < 1e-6:
@@ -143,3 +146,32 @@ class RobustGPModel(GPyOpt.models.GPModel):
             Returns a list with the names of the parameters of the model
             """
             return self.model.parameter_names()
+
+
+# Added to circumvent a GPy bug
+class FixedInverseGamma(GPy.priors.Gamma):
+    """
+    Implementation of the inverse-Gamma probability function, coupled with random variables.
+    :param a: shape parameter
+    :param b: rate parameter (warning: it's the *inverse* of the scale)
+    .. Note:: Bishop 2006 notation is used throughout the code
+    """
+    domain = _POSITIVE
+
+    def __init__(self, a, b):
+        super().__init__(a, b)
+        self.a = float(a)
+        self.b = float(b)
+        self.constant = -gammaln(self.a) + a * np.log(b)
+
+    def __str__(self):
+        return "iGa({:.2g}, {:.2g})".format(self.a, self.b)
+
+    def lnpdf(self, x):
+        return self.constant - (self.a + 1) * np.log(x) - self.b / x
+
+    def lnpdf_grad(self, x):
+        return -(self.a + 1.) / x + self.b / x ** 2
+
+    def rvs(self, n):
+        return 1. / np.random.gamma(scale=1. / self.b, shape=self.a, size=n)
