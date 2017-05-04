@@ -68,9 +68,12 @@ class RobustGPModel(GPyOpt.models.GPModel):
         kernel.lengthscale.set_prior(prior())
         kernel.variance.set_prior(prior())
         
+        noise_var = 
+        
         # Model
-        noise_var = Y.var() * 0.01 if self.noise_var is None else self.noise_var
+        noise_var = np.square(Y[:30].std(ddof=1)) if self.noise_var is None else self.noise_var
         self.model = GPy.models.GPRegression(X, Y, kernel=kernel, noise_var=noise_var)
+        self.model.likelihood.variance.set_prior(gamma())
         
         # Evaluation constriant
         if self.exact_feval or noise_var < 1e-6:
