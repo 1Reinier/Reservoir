@@ -55,6 +55,8 @@ class EchoStateNetworkCV:
         Maximum number of seconds before quitting optimization
     n_jobs : int
         Maximum number of concurrent jobs
+    esn_feedback : bool or None
+        Build ESNs with feedback ('teacher forcing') or not
     verbose : bool
         Verbosity on or off
     
@@ -63,7 +65,7 @@ class EchoStateNetworkCV:
     def __init__(self, bounds, subsequence_length, eps=1e-8, initial_samples=8, validate_fraction=0.2, 
                  steps_ahead=None, max_iterations=1000, batch_size=1, cv_samples=1, mcmc_samples=None, 
                  scoring_method='tanh-nrmse', tanh_alpha=1., esn_burn_in=100, acquisition_type='LCB', 
-                 max_time=np.inf, n_jobs=1, random_seed=42, verbose=True):
+                 max_time=np.inf, n_jobs=1, random_seed=42, esn_feedback=None, verbose=True):
         # Bookkeeping
         self.bounds = OrderedDict(bounds)  # Fix order
         self.parameters = list(self.bounds.keys())
@@ -86,6 +88,7 @@ class EchoStateNetworkCV:
         self.max_time = max_time
         self.n_jobs = n_jobs
         self.seed = random_seed
+        self.feedback = feedback
         self.verbose = verbose
         
         # Normalize bounds domains and remember transformation
@@ -214,7 +217,11 @@ class EchoStateNetworkCV:
         # Specific edits
         arguments['random_seed'] = self.seed
         if 'regularization' in arguments:
-            arguments['regularization'] = 10. ** arguments['regularization']  # Log scale            
+            arguments['regularization'] = 10. ** arguments['regularization']  # Log scale     
+        
+        if not self.feedback is None:
+            arguments['feedback'] = self.feedback
+            
         return arguments
     
     def validate_data(self, y, x=None, verbose=True):
