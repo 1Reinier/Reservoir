@@ -292,7 +292,7 @@ class EchoStateNetwork:
         # Run prediction
         final_t = y.shape[0]
         if steps_ahead is None:
-            y_predicted = self.predict(final_t x, y_start=y_start)
+            y_predicted = self.predict(final_t, x, y_start=y_start)
         else:
             y_predicted = self.predict_stepwise(y, x, steps_ahead=steps_ahead, y_start=y_start)[:final_t]
             
