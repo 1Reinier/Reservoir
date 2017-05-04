@@ -588,7 +588,7 @@ class EchoStateNetworkCV:
         for i in range(self.cv_samples):  # TODO: Can be parallelized
             
             # Get indices
-            start_index = self.random_state.randint(viable_start, viable_stop)
+            start_index = np.random.randint(viable_start, viable_stop)
             train_stop_index = start_index + train_length
             validate_stop_index = train_stop_index + validate_length
             
