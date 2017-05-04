@@ -365,7 +365,7 @@ class EchoStateNetwork:
         y_predicted = self.denormalize(outputs=y_predicted)
         
         # Return predictions
-        return y_predicted
+        return y_predicted.reshape(-1, 1)
     
     def predict_stepwise(self, y, x=None, steps_ahead=1, y_start=None):
         """Predicts a specified number of steps into the future for every time point in y-values array.
