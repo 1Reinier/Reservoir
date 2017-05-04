@@ -207,24 +207,14 @@ class EchoStateNetworkCV:
             Arguments that can be fed into an ESN
             
         """
-        # Denormalize
-        print(x)
-        
-        denormalized_values = self.denormalize_bounds(x)
-        
-        print(denormalized_values)
-        
+        # Denormalize        
+        denormalized_values = self.denormalize_bounds(x)        
         arguments = dict(zip(self.parameters, denormalized_values))
-        
-        print(arguments)
         
         # Specific edits
         arguments['random_seed'] = self.seed
         if 'regularization' in arguments:
-            arguments['regularization'] = 10. ** arguments['regularization']  # Log scale
-            
-        print(arguments)
-            
+            arguments['regularization'] = 10. ** arguments['regularization']  # Log scale            
         return arguments
     
     def validate_data(self, y, x=None, verbose=True):
