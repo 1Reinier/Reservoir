@@ -298,7 +298,7 @@ class EchoStateNetworkCV:
         
         # Keywords to feed into Bayesian Optimization
         gamma_prior = lambda: GPy.priors.Gamma(1., 1.)  
-        kernel = GPy.kern.Matern52(input_dim=7, ARD=True)
+        kernel = GPy.kern.Matern52(input_dim=len(self.parameters), ARD=True)
         kernel.variance.set_prior(gamma_prior())
         kernel.lengthscale.set_prior(gamma_prior())
 
@@ -427,7 +427,7 @@ class EchoStateNetworkCV:
         else:
             acquisition_type = self.acquisition_type + '_MCMC'
             # Set GP kernel
-            kernel = GPy.kern.Matern52(input_dim=7, ARD=True)
+            kernel = GPy.kern.Matern52(input_dim=len(self.parameters), ARD=True)
             
             # Proper distribution close to Jeffrey's prior
             gamma_prior = lambda: GPy.priors.Gamma(.001, .001)  
@@ -464,8 +464,9 @@ class EchoStateNetworkCV:
             pass
         
         # Set initial design
-        noise_estiation_parameters = np.random.uniform(-1e-6, 1e-6, size=(30, 7)) + 0.5
-        random_samples = np.random.uniform(size=(self.initial_samples - 29, 7))
+        n = len(self.parameters)
+        noise_estiation_parameters = np.random.uniform(-1e-6, 1e-6, size=(30, n)) + 0.5
+        random_samples = np.random.uniform(size=(self.initial_samples - 29, n))
         initial_parameters = np.vstack((noise_estiation_parameters, random_samples))
         #initial_parameters = GPyOpt.util.stats.sample_initial_design('latin', space, self.initial_samples)  # Latin hypercube initialization
         
