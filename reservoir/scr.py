@@ -281,9 +281,8 @@ class SimpleCycleReservoir:
             # Update
             current_state = np.tanh(self.in_weights @ current_input.T + self.weights @ current_state)
             
-            # Prediction. Order of concatenation is [1, inputs, y(n-1), state]
-            complete_row = np.hstack((current_input, current_state))
-            y_predicted[t] = complete_row @ self.out_weights
+            # Prediction
+            y_predicted[t] = current_state @ self.out_weights
             previous_y = y_predicted[t]
         
         # Denormalize predictions
@@ -370,8 +369,7 @@ class SimpleCycleReservoir:
                     current_state = np.copy(prediction_state)
                 
                 # Prediction. Order of concatenation is [1, inputs, y(n-1), state]
-                prediction_row = np.hstack((prediction_input, prediction_state))
-                y_predicted[t, n] = prediction_row @ self.out_weights
+                y_predicted[t, n] = prediction_state @ self.out_weights
                 prediction_y = y_predicted[t, n]
             
             # Evolve true state
