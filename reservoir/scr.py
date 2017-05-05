@@ -17,7 +17,7 @@ class SimpleCycleReservoir(EchoStateNetwork):
                         feedback_scaling=None, 
                         spectral_radius=None, 
                         connectivity=None,
-                        feedback=False))
+                        feedback=False)
         
         # Save attributes
         self.n_nodes = n_nodes
