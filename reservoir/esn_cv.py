@@ -65,7 +65,7 @@ class EchoStateNetworkCV:
     
     """
     
-    def __init__(self, bounds, model=EchoStateNetwork, subsequence_length, eps=1e-8, initial_samples=8, 
+    def __init__(self, bounds, subsequence_length, model=EchoStateNetwork, eps=1e-8, initial_samples=8, 
                  validate_fraction=0.2, steps_ahead=None, max_iterations=1000, batch_size=1, cv_samples=1, 
                  mcmc_samples=None, scoring_method='nmse', tanh_alpha=1., esn_burn_in=100, acquisition_type='LCB',
                  max_time=np.inf, n_jobs=1, random_seed=42, esn_feedback=None, verbose=True):
