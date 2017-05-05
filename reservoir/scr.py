@@ -9,7 +9,7 @@ class SimpleCycleReservoir:
     
     def __init__(self, n_nodes=30, regularization=1e-8, cyclic_weight=0.5, input_weight=0.5, random_seed=42):
         # Save attributes
-        self.n_nodes = n_nodes
+        self.n_nodes = int(np.round(n_nodes))
         self.regularization = regularization
         self.cyclic_weight = cyclic_weight
         self.input_weight = input_weight
