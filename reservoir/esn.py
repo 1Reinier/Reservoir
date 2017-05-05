@@ -402,7 +402,7 @@ class EchoStateNetwork:
         t_steps = y.shape[0]
         
         # Check input
-        if not x.shape[0] == t_steps:
+        if not x is None and not x.shape[0] == t_steps:
             raise ValueError('x has the wrong size for prediction: x.shape[0] = {}, while y.shape[0] = {}'.format(x.shape[0], t_steps))
 
         # Choose correct input
