@@ -152,8 +152,7 @@ class SimpleCycleReservoir:
             
         # Normalize inputs and outputs
         y = self.normalize(outputs=y, keep=True)
-        if not x is None:
-            x = self.normalize(inputs=x, keep=True)
+        x = self.normalize(inputs=x, keep=True)
         
         # Reset state
         current_state = self.state[-1]  # From default or pretrained state
@@ -168,8 +167,7 @@ class SimpleCycleReservoir:
         inputs = np.ones((rows, 1))  # Add bias for all t = 0, ..., T
                 
         # Add data inputs if present
-        if not x is None:
-            inputs = np.hstack((inputs, x[start_index:]))  # Add data inputs
+        inputs = np.hstack((inputs, x))  # Add data inputs
             
         # Set and scale input weights (for memory length and non-linearity)
         self.in_weights = np.full(shape=(self.n_nodes, inputs.shape[1]), fill_value=self.input_weight, dtype=float)
@@ -259,8 +257,7 @@ class SimpleCycleReservoir:
             raise ValueError('Error: ESN not trained yet')
         
         # Normalize the inputs (like was done in train)
-        if not x is None:
-            x = self.normalize(inputs=x)
+        x = self.normalize(inputs=x)
             
         # Initialize input
         inputs = np.ones((n_steps, 1))  # Add bias term
@@ -324,14 +321,13 @@ class SimpleCycleReservoir:
         
         # Normalize the arguments (like was done in train)
         y = self.normalize(outputs=y)
-        if not x is None:
-            x = self.normalize(inputs=x)
+        x = self.normalize(inputs=x)
         
         # Timesteps in y
         t_steps = y.shape[0]
         
         # Check input
-        if not x is None and not x.shape[0] == t_steps:
+        if not x.shape[0] == t_steps:
             raise ValueError('x has the wrong size for prediction: x.shape[0] = {}, while y.shape[0] = {}'.format(x.shape[0], t_steps))
 
         # Choose correct input
@@ -339,7 +335,7 @@ class SimpleCycleReservoir:
         inputs = np.hstack((inputs, x))  # Add x inputs
             
         # Run until we have no further inputs
-        time_length = t_steps if x is None else t_steps - steps_ahead + 1
+        time_length = t_steps - steps_ahead + 1
         
         # Set parameters
         y_predicted = np.zeros((time_length, steps_ahead))
