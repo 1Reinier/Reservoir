@@ -7,13 +7,13 @@ __all__ = ['SimpleCycleReservoir']
 
 class SimpleCycleReservoir:
     
-    def __init__(self, n_nodes=30, regularization=1e-8, cyclic_weight=0.5, input_weight=0.5, seed=42):
+    def __init__(self, n_nodes=30, regularization=1e-8, cyclic_weight=0.5, input_weight=0.5, random_seed=42):
         # Save attributes
         self.n_nodes = n_nodes
         self.regularization = regularization
         self.cyclic_weight = cyclic_weight
         self.input_weight = input_weight
-        self.seed = seed
+        self.seed = random_seed
         
         # Generate reservoir
         self.generate_reservoir()
