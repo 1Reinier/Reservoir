@@ -14,7 +14,6 @@ class SimpleCycleReservoir:
         self.cyclic_weight = cyclic_weight
         self.input_weight = input_weight
         self.seed = seed
-        self.feedback = False
         
         # Generate reservoir
         self.generate_reservoir()
@@ -124,7 +123,7 @@ class SimpleCycleReservoir:
         # Syntactic sugar
         return tuple(transformed) if len(transformed) > 1 else transformed[0]
     
-    def train(self, y, x=None, burn_in=100):
+    def train(self, y, x, burn_in=100):
         """Trains the Echo State Network.
 
         Trains the out weights on the random network. This is needed before being able to make predictions.
@@ -143,15 +142,11 @@ class SimpleCycleReservoir:
         Returns
         -------
         complete_data, y, burn_in : tuple
-            Returns the complete dataset (state matrix concatenated with any feedback and/or inputs),
+            Returns the complete dataset (state matrix concatenated with any inputs),
             the y values provided and the number of time steps used for burn_in. These data can be used
             for diagnostic purposes  (e.g. vizualization of activations).
         
-        """
-        # Checks
-        if x is None and not self.feedback:
-            raise ValueError("Error: provide x or enable feedback")
-        
+        """    
         # Initialize new random state
         random_state = np.random.RandomState(self.seed + 1)
             
@@ -163,9 +158,8 @@ class SimpleCycleReservoir:
         # Reset state
         current_state = self.state[-1]  # From default or pretrained state
         
-        # Calculate correct shape based on feedback (feedback means one row less)
-        start_index = 1 if self.feedback else 0  # Convenience index
-        rows = y.shape[0] - start_index
+        # Calculate correct shape
+        rows = y.shape[0]
         
         # Build state matrix
         self.state = np.zeros((rows, self.n_nodes))
@@ -181,22 +175,14 @@ class SimpleCycleReservoir:
         self.in_weights = np.full(shape=(self.n_nodes, inputs.shape[1]), fill_value=self.input_weight, dtype=float)
         self.in_weights *= np.sign(np.random.uniform(low=-1.0, high=1.0, size=self.in_weights.shape)) 
                 
-        # Add feedback if requested, optionally with feedback scaling
-        if self.feedback:
-            inputs = np.hstack((inputs, y[:-1]))  # Add teacher forced signal (equivalent to y(t-1) as input)
-            feedback_weights = self.feedback_scaling * random_state.uniform(-1, 1, size=(self.n_nodes, 1))
-            self.in_weights = np.hstack((self.in_weights, feedback_weights))
-                
         # Train iteratively
         for t in range(inputs.shape[0]):
-            update = np.tanh(self.in_weights @ inputs[t].T + self.weights @ current_state)
-            current_state = self.leaking_rate * update + (1 - self.leaking_rate) * current_state  # Leaking separate
-            self.state[t] = current_state
+            self.state[t] = np.tanh(self.in_weights @ inputs[t].T + self.weights @ current_state)
         
         # Concatenate inputs with node states
         complete_data = np.hstack((inputs, self.state))
         train_x = complete_data[burn_in:]  # Include everything after burn_in
-        train_y = y[burn_in + 1:] if self.feedback else y[burn_in:]
+        train_y = y[burn_in:]
         
         # Ridge regression
         ridge_x = train_x.T @ train_x + self.regularization * np.eye(train_x.shape[1])
@@ -212,7 +198,7 @@ class SimpleCycleReservoir:
         self.y_last = y[-1]
         
         # Return all data for computation or visualization purposes (Note: these are normalized)
-        return complete_data, (y[1:] if self.feedback else y), burn_in
+        return complete_data, y, burn_in
             
     def test(self, y, x=None, y_start=None, steps_ahead=None, scoring_method='mse', alpha=1.):
         """Tests and scores against known output.
@@ -248,7 +234,7 @@ class SimpleCycleReservoir:
         # Return error
         return self.error(y_predicted, y, scoring_method, alpha=alpha)
     
-    def predict(self, n_steps, x=None, y_start=None):
+    def predict(self, n_steps, x, y_start=None):
         """Predicts n values in advance.
         
         Prediction starts from the last state generated in training.
@@ -278,12 +264,7 @@ class SimpleCycleReservoir:
             
         # Initialize input
         inputs = np.ones((n_steps, 1))  # Add bias term
-        
-        # Choose correct input
-        if x is None and not self.feedback:
-            raise ValueError("Error: cannot run without feedback and without x. Enable feedback or supply x")
-        elif not x is None:
-            inputs = np.hstack((inputs, x))  # Add data inputs
+        inputs = np.hstack((inputs, x))  # Add data inputs
         
         # Set parameters
         y_predicted = np.zeros(n_steps)
@@ -298,12 +279,11 @@ class SimpleCycleReservoir:
         
         # Predict iteratively
         for t in range(n_steps):
-            # Get correct input based on feedback setting
-            current_input = inputs[t] if not self.feedback else np.hstack((inputs[t], previous_y))
+            # Get correct input
+            current_input = inputs[t]
             
             # Update
-            update = np.tanh(self.in_weights @ current_input.T + self.weights @ current_state)
-            current_state = self.leaking_rate * update + (1 - self.leaking_rate) * current_state
+            current_state = np.tanh(self.in_weights @ current_input.T + self.weights @ current_state)
             
             # Prediction. Order of concatenation is [1, inputs, y(n-1), state]
             complete_row = np.hstack((current_input, current_state))
@@ -316,7 +296,7 @@ class SimpleCycleReservoir:
         # Return predictions
         return y_predicted.reshape(-1, 1)
     
-    def predict_stepwise(self, y, x=None, steps_ahead=1, y_start=None):
+    def predict_stepwise(self, y, x, steps_ahead=1, y_start=None):
         """Predicts a specified number of steps into the future for every time point in y-values array.
         
         E.g. if `steps_ahead` is 1 this produces a 1-step ahead prediction at every point in time.
@@ -355,15 +335,8 @@ class SimpleCycleReservoir:
             raise ValueError('x has the wrong size for prediction: x.shape[0] = {}, while y.shape[0] = {}'.format(x.shape[0], t_steps))
 
         # Choose correct input
-        if x is None and not self.feedback:
-            raise ValueError("Error: cannot run without feedback and without x. Enable feedback or supply x")
-        elif not x is None:
-            # Initialize input
-            inputs = np.ones((t_steps, 1))  # Add bias term
-            inputs = np.hstack((inputs, x))  # Add x inputs
-        else:
-            # x is None
-            inputs = np.ones((t_steps + steps_ahead, 1))  # Add bias term
+        inputs = np.ones((t_steps, 1))  # Add bias term
+        inputs = np.hstack((inputs, x))  # Add x inputs
             
         # Run until we have no further inputs
         time_length = t_steps if x is None else t_steps - steps_ahead + 1
@@ -391,12 +364,11 @@ class SimpleCycleReservoir:
             # Predict stepwise at from current time step
             for n in range(steps_ahead):
                 
-                # Get correct input based on feedback setting
-                prediction_input = inputs[t + n] if not self.feedback else np.hstack((inputs[t + n], prediction_y))
+                # Get correct input based on
+                prediction_input = inputs[t + n]
                 
                 # Update
-                prediction_update = np.tanh(self.in_weights @ prediction_input.T + self.weights @ prediction_state)
-                prediction_state = self.leaking_rate * prediction_update + (1 - self.leaking_rate) * prediction_state
+                prediction_state = np.tanh(self.in_weights @ prediction_input.T + self.weights @ prediction_state)
                 
                 # Store for next iteration of t (evolves true state)
                 if n == 0:

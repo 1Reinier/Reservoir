@@ -247,7 +247,8 @@ class EchoStateNetwork:
         # Train iteratively
         for t in range(inputs.shape[0]):
             update = np.tanh(self.in_weights @ inputs[t].T + self.weights @ current_state)
-            self.state[t] = update
+            current_state = self.leaking_rate * update + (1 - self.leaking_rate) * current_state  # Leaking separate
+            self.state[t] = current_state
         
         # Concatenate inputs with node states
         complete_data = np.hstack((inputs, self.state))
