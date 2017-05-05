@@ -179,7 +179,7 @@ class SimpleCycleReservoir:
             
         # Set and scale input weights (for memory length and non-linearity)
         self.in_weights = np.full(shape=(self.n_nodes, inputs.shape[1]), fill_value=self.input_weight, dtype=float)
-        self.in_weights *= np.sign(p.random.uniform(low=-1.0, high=1.0, size=self.in_weights.shape)) 
+        self.in_weights *= np.sign(np.random.uniform(low=-1.0, high=1.0, size=self.in_weights.shape)) 
                 
         # Add feedback if requested, optionally with feedback scaling
         if self.feedback:

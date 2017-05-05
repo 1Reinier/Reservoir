@@ -236,12 +236,7 @@ class EchoStateNetwork:
             inputs = np.hstack((inputs, x[start_index:]))  # Add data inputs
             
         # Set and scale input weights (for memory length and non-linearity)
-        if not input_weight is None:
-            self.in_weights = self.input_scaling * random_state.uniform(-1, 1, size=(self.n_nodes, inputs.shape[1]))
-        else:
-            # For cyclic ESN
-            self.in_weights = np.full(shape=(self.n_nodes, inputs.shape[1]), fill_value=input_weight, dtype=float)
-            self.in_weights *= np.sign(p.random.uniform(low=-1.0, high=1.0, size=self.in_weights.shape)) 
+        self.in_weights = self.input_scaling * random_state.uniform(-1, 1, size=(self.n_nodes, inputs.shape[1]))
                 
         # Add feedback if requested, optionally with feedback scaling
         if self.feedback:
