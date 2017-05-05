@@ -5,7 +5,7 @@ import numpy as np
 __all__ = ['SimpleCycleReservoir']
 
 
-class SimpleCycleReservoir(EchoStateNetwork):
+class SimpleCycleReservoir:
     
     def __init__(self, n_nodes=30, regularization=1e-8, cyclic_weight=0.5, input_weight=0.5, seed=42):
         # Initialize ESN
