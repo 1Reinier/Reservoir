@@ -151,8 +151,8 @@ class SimpleCycleReservoir:
         random_state = np.random.RandomState(self.seed + 1)
             
         # Normalize inputs and outputs
-        y = self.normalize(outputs=y, keep=True)
-        x = self.normalize(inputs=x, keep=True)
+        # y = self.normalize(outputs=y, keep=True)
+        # x = self.normalize(inputs=x, keep=True)
         
         # Reset state
         current_state = self.state[-1]  # From default or pretrained state
@@ -258,8 +258,8 @@ class SimpleCycleReservoir:
             raise ValueError('Error: ESN not trained yet')
         
         # Normalize the arguments (like was done in train)
-        y = self.normalize(outputs=y)
-        x = self.normalize(inputs=x)
+        # y = self.normalize(outputs=y)
+        # x = self.normalize(inputs=x)
         
         # Timesteps in y
         t_steps = y.shape[0]
@@ -304,7 +304,7 @@ class SimpleCycleReservoir:
                 y_predicted[t, n] = prediction_state @ self.out_weights
         
         # Denormalize predictions
-        y_predicted = self.denormalize(outputs=y_predicted)
+        # y_predicted = self.denormalize(outputs=y_predicted)
         
         # Return predictions
         return y_predicted
