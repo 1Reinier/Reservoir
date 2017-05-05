@@ -197,7 +197,7 @@ class SimpleCycleReservoir:
         # Return all data for computation or visualization purposes (Note: these are normalized)
         return self.state, y, burn_in
             
-    def test(self, y, x=None, y_start=None, steps_ahead=None, scoring_method='mse', alpha=1.):
+    def test(self, y, x=None, y_start=None, steps_ahead=None, scoring_method='mse', alpha=1., burn_in=30):
         """Tests and scores against known output.
         
         Parameters
@@ -229,7 +229,7 @@ class SimpleCycleReservoir:
             y_predicted = self.predict_stepwise(y, x, steps_ahead=steps_ahead)[:final_t]
             
         # Return error
-        return self.error(y_predicted, y, scoring_method, alpha=alpha)
+        return self.error(y_predicted[burn_in:], y[burn_in:], scoring_method, alpha=alpha)
     
     def predict_stepwise(self, y, x, steps_ahead=1):
         """Predicts a specified number of steps into the future for every time point in y-values array.
