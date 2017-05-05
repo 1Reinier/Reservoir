@@ -123,7 +123,7 @@ class SimpleCycleReservoir:
         # Syntactic sugar
         return tuple(transformed) if len(transformed) > 1 else transformed[0]
     
-    def train(self, y, x, burn_in=100):
+    def train(self, y, x, burn_in=30):
         """Trains the Echo State Network.
 
         Trains the out weights on the random network. This is needed before being able to make predictions.
@@ -231,67 +231,7 @@ class SimpleCycleReservoir:
         # Return error
         return self.error(y_predicted, y, scoring_method, alpha=alpha)
     
-    def predict(self, n_steps, x, y_start=None):
-        """Predicts n values in advance.
-        
-        Prediction starts from the last state generated in training.
-        
-        Parameters
-        ----------
-        n_steps : int
-            The number of steps to predict into the future (internally done in one step increments)
-        x : numpy array or None
-            If prediciton requires inputs, provide them here
-        y_start : float or None
-            Starting value from which to start prediction. If None, last stored value from training will be used
-        
-        Returns
-        -------
-        y_predicted : numpy array
-            Array of n_step predictions
-        
-        """
-        # Check if ESN has been trained
-        if self.out_weights is None or self.y_last is None:
-            raise ValueError('Error: ESN not trained yet')
-        
-        # Normalize the inputs (like was done in train)
-        x = self.normalize(inputs=x)
-            
-        # Initialize input
-        inputs = np.ones((n_steps, 1))  # Add bias term
-        inputs = np.hstack((inputs, x))  # Add data inputs
-        
-        # Set parameters
-        y_predicted = np.zeros(n_steps)
-        
-        # Get last states
-        previous_y = self.y_last
-        if not y_start is None:
-            previous_y = self.normalize(outputs=y_start)[0]
-        
-        # Initialize state from last availble in train
-        current_state = self.state[-1]
-        
-        # Predict iteratively
-        for t in range(n_steps):
-            # Get correct input
-            current_input = inputs[t]
-            
-            # Update
-            current_state = np.tanh(self.in_weights @ current_input.T + self.weights @ current_state)
-            
-            # Prediction
-            y_predicted[t] = current_state @ self.out_weights
-            previous_y = y_predicted[t]
-        
-        # Denormalize predictions
-        y_predicted = self.denormalize(outputs=y_predicted)
-        
-        # Return predictions
-        return y_predicted.reshape(-1, 1)
-    
-    def predict_stepwise(self, y, x, steps_ahead=1, y_start=None):
+    def predict_stepwise(self, y, x, steps_ahead=1):
         """Predicts a specified number of steps into the future for every time point in y-values array.
         
         E.g. if `steps_ahead` is 1 this produces a 1-step ahead prediction at every point in time.
@@ -338,22 +278,14 @@ class SimpleCycleReservoir:
         # Set parameters
         y_predicted = np.zeros((time_length, steps_ahead))
         
-        # Get last states
-        previous_y = self.y_last
-        if not y_start is None:
-            previous_y = self.normalize(outputs=y_start)[0]
-        
         # Initialize state from last availble in train
-        current_state = self.state[-1]
+        current_state = np.zeros_like(self.state[-1])
         
         # Predict iteratively
         for t in range(time_length):
             
             # State_buffer for steps ahead prediction
             prediction_state = np.copy(current_state)
-            
-            # Y buffer for step ahead prediction
-            prediction_y = np.copy(previous_y)
             
             # Predict stepwise at from current time step
             for n in range(steps_ahead):
@@ -368,12 +300,8 @@ class SimpleCycleReservoir:
                 if n == 0:
                     current_state = np.copy(prediction_state)
                 
-                # Prediction. Order of concatenation is [1, inputs, y(n-1), state]
+                # Prediction
                 y_predicted[t, n] = prediction_state @ self.out_weights
-                prediction_y = y_predicted[t, n]
-            
-            # Evolve true state
-            previous_y = y[t]
         
         # Denormalize predictions
         y_predicted = self.denormalize(outputs=y_predicted)
