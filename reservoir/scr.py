@@ -23,9 +23,9 @@ class SimpleCycleReservoir:
         
         # Set reservoir weights
         self.weights = np.zeros((self.n_nodes, self.n_nodes))
+        self.weights[0, -1] = self.cyclic_weight
         for i in range(self.n_nodes - 1):
             self.weights[i+1, i] = self.cyclic_weight
-        self.weights[0, -1] = self.cyclic_weight
         
         # Default state
         self.state = np.zeros((1, self.n_nodes))
@@ -178,8 +178,7 @@ class SimpleCycleReservoir:
             self.state[t] = np.tanh(self.in_weights @ inputs[t].T + self.weights @ current_state)
         
         # Concatenate inputs with node states
-        complete_data = np.hstack((inputs, self.state))
-        train_x = complete_data[burn_in:]  # Include everything after burn_in
+        train_x = self.state[burn_in:]  # Include everything after burn_in
         train_y = y[burn_in:]
         
         # Ridge regression
