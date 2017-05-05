@@ -195,7 +195,7 @@ class SimpleCycleReservoir:
         self.y_last = y[-1]
         
         # Return all data for computation or visualization purposes (Note: these are normalized)
-        return complete_data, y, burn_in
+        return self.state, y, burn_in
             
     def test(self, y, x=None, y_start=None, steps_ahead=None, scoring_method='mse', alpha=1.):
         """Tests and scores against known output.
