@@ -255,9 +255,15 @@ class EchoStateNetwork:
         train_x = complete_data[burn_in:]  # Include everything after burn_in
         train_y = y[burn_in + 1:] if self.feedback else y[burn_in:]
         
-        # Ridge regression, full inverse solution
-        self.out_weights = np.linalg.inv(train_x.T @ train_x + self.regularization * \
-                                        np.eye(train_x.shape[1])) @ train_x.T @ train_y 
+        # Ridge regression
+        ridge_x = train_x.T @ train_x + self.regularization * np.eye(train_x.shape[1])
+        ridge_y = train_x.T @ train_y 
+        
+        # Full inverse solution
+        # self.out_weights = np.linalg.inv(ridge_x) @ ridge_y
+        
+        # Solver solution (fast)
+        self.out_weights = np.linalg.solve(ridge_x ridge_y)
 
         # Store last y value as starting value for predictions
         self.y_last = y[-1]
