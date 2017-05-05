@@ -88,7 +88,7 @@ class EchoStateNetworkCV:
         self.max_time = max_time
         self.n_jobs = n_jobs
         self.seed = random_seed
-        self.feedback = feedback
+        self.feedback = esn_feedback
         self.verbose = verbose
         
         # Normalize bounds domains and remember transformation
