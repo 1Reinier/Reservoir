@@ -36,7 +36,7 @@ class SimpleCycleReservoir(EchoStateNetwork):
         self.weights = np.zeros((self.n_nodes, self.n_nodes))
         for i in range(self.n_nodes - 1):
             self.weights[i+1, i] = self.r
-        self.weights[0, -1] = self. r
+        self.weights[0, -1] = self.r
         
         # Default state
         self.state = np.zeros((1, self.n_nodes))
