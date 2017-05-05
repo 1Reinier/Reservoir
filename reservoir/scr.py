@@ -44,5 +44,5 @@ class SimpleCycleReservoir(EchoStateNetwork):
         # Set out to none to indicate untrained ESN
         self.out_weights = None
         
-    def train(self, y, x=None, burn_in=30):
+    def train_scr(self, y, x=None, burn_in=30):
         return super().train(y=y, x=x, burn_in=100, input_weight=self.input_weight)
