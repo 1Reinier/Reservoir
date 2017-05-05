@@ -49,7 +49,7 @@ class EchoStateNetwork:
     
     """
     
-    def __init__(self, n_nodes, input_scaling=0.5, feedback_scaling=0.5, spectral_radius=0.8, 
+    def __init__(self, n_nodes=1000, input_scaling=0.5, feedback_scaling=0.5, spectral_radius=0.8, 
                  leaking_rate=1.0, connectivity=0.1, regularization=1e-8, feedback=True, random_seed=42):
         # Parameters
         self.n_nodes = int(np.round(n_nodes))
@@ -182,7 +182,7 @@ class EchoStateNetwork:
         # Syntactic sugar
         return tuple(transformed) if len(transformed) > 1 else transformed[0]
     
-    def train(self, y, x=None, burn_in=100):
+    def train(self, y, x=None, burn_in=100, input_weight=None):
         """Trains the Echo State Network.
 
         Trains the out weights on the random network. This is needed before being able to make predictions.
@@ -236,7 +236,12 @@ class EchoStateNetwork:
             inputs = np.hstack((inputs, x[start_index:]))  # Add data inputs
             
         # Set and scale input weights (for memory length and non-linearity)
-        self.in_weights = self.input_scaling * random_state.uniform(-1, 1, size=(self.n_nodes, inputs.shape[1]))
+        if not input_weight is None:
+            self.in_weights = self.input_scaling * random_state.uniform(-1, 1, size=(self.n_nodes, inputs.shape[1]))
+        else:
+            # For cyclic ESN
+            self.in_weights = np.full(shape=(self.n_nodes, inputs.shape[1]), fill_value=input_weight, dtype=float)
+            self.in_weights *= np.sign(p.random.uniform(low=-1.0, high=1.0, size=self.in_weights.shape)) 
                 
         # Add feedback if requested, optionally with feedback scaling
         if self.feedback:
@@ -263,7 +268,7 @@ class EchoStateNetwork:
         # self.out_weights = np.linalg.inv(ridge_x) @ ridge_y
         
         # Solver solution (fast)
-        self.out_weights = np.linalg.solve(ridge_x ridge_y)
+        self.out_weights = np.linalg.solve(ridge_x, ridge_y)
 
         # Store last y value as starting value for predictions
         self.y_last = y[-1]
