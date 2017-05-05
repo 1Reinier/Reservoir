@@ -260,10 +260,10 @@ class EchoStateNetwork:
         ridge_y = train_x.T @ train_y 
         
         # Full inverse solution
-        self.out_weights = np.linalg.inv(ridge_x) @ ridge_y
+        # self.out_weights = np.linalg.inv(ridge_x) @ ridge_y
         
         # Solver solution (fast)
-        # self.out_weights = np.linalg.solve(ridge_x, ridge_y)
+        self.out_weights = np.linalg.solve(ridge_x, ridge_y)
 
         # Store last y value as starting value for predictions
         self.y_last = y[-1]

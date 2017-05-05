@@ -186,10 +186,10 @@ class SimpleCycleReservoir:
         ridge_y = train_x.T @ train_y 
         
         # Full inverse solution
-        self.out_weights = np.linalg.inv(ridge_x) @ ridge_y
+        # self.out_weights = np.linalg.inv(ridge_x) @ ridge_y
         
         # Solver solution (fast)
-        # self.out_weights = np.linalg.solve(ridge_x, ridge_y)
+        self.out_weights = np.linalg.solve(ridge_x, ridge_y)
 
         # Store last y value as starting value for predictions
         self.y_last = y[-1]
@@ -223,15 +223,12 @@ class SimpleCycleReservoir:
         """
         # Run prediction
         final_t = y.shape[0]
-        if steps_ahead is None:
-            y_predicted = self.predict(final_t, x, y_start=y_start)
-        else:
-            y_predicted = self.predict_stepwise(y, x, steps_ahead=steps_ahead)[:final_t]
+        y_predicted = self.predict_stepwise(x, steps_ahead=steps_ahead)[:final_t]
             
         # Return error
         return self.error(y_predicted[burn_in:], y[burn_in:], scoring_method, alpha=alpha)
     
-    def predict_stepwise(self, y, x, steps_ahead=1):
+    def predict_stepwise(self, x, steps_ahead=1):
         """Predicts a specified number of steps into the future for every time point in y-values array.
         
         E.g. if `steps_ahead` is 1 this produces a 1-step ahead prediction at every point in time.
@@ -254,7 +251,7 @@ class SimpleCycleReservoir:
         
         """
         # Check if ESN has been trained
-        if self.out_weights is None or self.y_last is None:
+        if self.out_weights is None:
             raise ValueError('Error: ESN not trained yet')
         
         # Normalize the arguments (like was done in train)
@@ -262,11 +259,7 @@ class SimpleCycleReservoir:
         # x = self.normalize(inputs=x)
         
         # Timesteps in y
-        t_steps = y.shape[0]
-        
-        # Check input
-        if not x.shape[0] == t_steps:
-            raise ValueError('x has the wrong size for prediction: x.shape[0] = {}, while y.shape[0] = {}'.format(x.shape[0], t_steps))
+        t_steps = x.shape[0]
 
         # Choose correct input
         inputs = np.ones((t_steps, 1))  # Add bias term
