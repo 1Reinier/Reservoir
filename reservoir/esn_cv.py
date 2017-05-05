@@ -1,4 +1,5 @@
 from .esn import *
+from .scr import *
 from .gpflowmodel import *
 from .robustgpmodel import *
 import numpy as np
@@ -23,6 +24,8 @@ class EchoStateNetworkCV:
     bounds : dict
         A dictionary specifying the bounds for optimization. The key is the parameter name and the value 
         is a tuple with minimum value and maximum value of that parameter. E.g. {'n_nodes': (100, 200), ...}
+    model : class: {EchoStateNetwork, SimpleCycleReservoir}
+            Model class to optimize
     subsequence_length : int
         Number of samples in one cross-validation sample
     eps : float
@@ -62,9 +65,9 @@ class EchoStateNetworkCV:
     
     """
     
-    def __init__(self, bounds, subsequence_length, eps=1e-8, initial_samples=8, validate_fraction=0.2, 
-                 steps_ahead=None, max_iterations=1000, batch_size=1, cv_samples=1, mcmc_samples=None, 
-                 scoring_method='tanh-nrmse', tanh_alpha=1., esn_burn_in=100, acquisition_type='LCB', 
+    def __init__(self, bounds, model=EchoStateNetwork, subsequence_length, eps=1e-8, initial_samples=8, 
+                 validate_fraction=0.2, steps_ahead=None, max_iterations=1000, batch_size=1, cv_samples=1, 
+                 mcmc_samples=None, scoring_method='nmse', tanh_alpha=1., esn_burn_in=100, acquisition_type='LCB',
                  max_time=np.inf, n_jobs=1, random_seed=42, esn_feedback=None, verbose=True):
         # Bookkeeping
         self.bounds = OrderedDict(bounds)  # Fix order
@@ -72,6 +75,7 @@ class EchoStateNetworkCV:
         self.indices = dict(zip(self.parameters, range(len(self.parameters))))  # Parameter indices
         
         # Store settings
+        self.model = model
         self.subsequence_length = subsequence_length
         self.eps = eps
         self.initial_samples = initial_samples
@@ -541,7 +545,7 @@ class EchoStateNetworkCV:
         arguments = self.construct_arguments(parameters)
 
         # Build network
-        esn = EchoStateNetwork(**arguments)
+        esn = self.model(**arguments)
         # Train
         esn.train(x=train_x, y=train_y, burn_in=self.esn_burn_in)
 
