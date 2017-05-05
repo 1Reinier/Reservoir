@@ -22,8 +22,8 @@ class SimpleCycleReservoir(EchoStateNetwork):
         # Save attributes
         self.n_nodes = n_nodes
         self.regularization = regularization
-        self.r = cyclic_weight
-        self.v = input_weight
+        self.cyclic_weight = cyclic_weight
+        self.input_weight = input_weight
         self.seed = seed
         
         # Generate reservoir
@@ -35,8 +35,8 @@ class SimpleCycleReservoir(EchoStateNetwork):
         # Set reservoir weights
         self.weights = np.zeros((self.n_nodes, self.n_nodes))
         for i in range(self.n_nodes - 1):
-            self.weights[i+1, i] = self.r
-        self.weights[0, -1] = self.r
+            self.weights[i+1, i] = self.cyclic_weight
+        self.weights[0, -1] = self.cyclic_weight
         
         # Default state
         self.state = np.zeros((1, self.n_nodes))
@@ -45,4 +45,4 @@ class SimpleCycleReservoir(EchoStateNetwork):
         self.out_weights = None
         
     def train(self, y, x=None, burn_in=30):
-        return super().train(y=y, x=x, burn_in=100, input_weight=self.v)
+        return super().train(y=y, x=x, burn_in=100, input_weight=self.input_weight)
