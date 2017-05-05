@@ -27,9 +27,9 @@ class SimpleCycleReservoir(EchoStateNetwork):
         self.seed = seed
         
         # Generate reservoir
-        self.generate_reservoir()
+        self.generate_scr_reservoir()
         
-    def generate_reservoir(self):
+    def generate_scr_reservoir(self):
         random_state = np.random.RandomState(self.seed)
         
         # Set reservoir weights
