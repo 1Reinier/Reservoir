@@ -13,10 +13,10 @@ class SimpleCycleReservoir(EchoStateNetwork):
                         random_seed=seed,
                         regularization=regularization, 
                         leaking_rate=1., 
-                        input_scaling=None,
-                        feedback_scaling=None, 
-                        spectral_radius=None, 
-                        connectivity=None,
+                        input_scaling=0.,
+                        feedback_scaling=0., 
+                        spectral_radius=0., 
+                        connectivity=1.,
                         feedback=False)
         
         # Save attributes
