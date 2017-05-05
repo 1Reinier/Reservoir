@@ -9,15 +9,15 @@ class SimpleCycleReservoir:
     
     def __init__(self, n_nodes=30, regularization=1e-8, cyclic_weight=0.5, input_weight=0.5, seed=42):
         # Initialize ESN
-        super().__init__(n_nodes=n_nodes, 
-                        random_seed=seed,
-                        regularization=regularization, 
-                        leaking_rate=1., 
-                        input_scaling=None,
-                        feedback_scaling=None, 
-                        spectral_radius=None, 
-                        connectivity=None,
-                        feedback=False)
+        # super().__init__(n_nodes=n_nodes, 
+        #                 random_seed=seed,
+        #                 regularization=regularization, 
+        #                 leaking_rate=1., 
+        #                 input_scaling=None,
+        #                 feedback_scaling=None, 
+        #                 spectral_radius=None, 
+        #                 connectivity=None,
+        #                 feedback=False)
         
         # Save attributes
         self.n_nodes = n_nodes
