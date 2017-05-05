@@ -197,7 +197,7 @@ class SimpleCycleReservoir:
         # Return all data for computation or visualization purposes (Note: these are normalized)
         return self.state, y, burn_in
             
-    def test(self, y, x=None, y_start=None, steps_ahead=None, scoring_method='mse', alpha=1., burn_in=30):
+    def test(self, y, x=None, y_start=None, steps_ahead=1, scoring_method='mse', alpha=1., burn_in=30):
         """Tests and scores against known output.
         
         Parameters
