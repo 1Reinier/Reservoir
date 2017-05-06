@@ -27,9 +27,6 @@ class SimpleCycleReservoir:
         for i in range(self.n_nodes - 1):
             self.weights[i+1, i] = self.cyclic_weight
         
-        # Default state
-        self.state = np.zeros((1, self.n_nodes))
-        
         # Set out to none to indicate untrained ESN
         self.out_weights = None
         
@@ -154,9 +151,6 @@ class SimpleCycleReservoir:
         # y = self.normalize(outputs=y, keep=True)
         # x = self.normalize(inputs=x, keep=True)
         
-        # Reset state
-        current_state = self.state[-1]  # From default or pretrained state
-        
         # Calculate correct shape
         rows = y.shape[0]
         
@@ -172,10 +166,14 @@ class SimpleCycleReservoir:
         # Set and scale input weights (for memory length and non-linearity)
         self.in_weights = np.full(shape=(self.n_nodes, inputs.shape[1]), fill_value=self.input_weight, dtype=float)
         self.in_weights *= np.sign(np.random.uniform(low=-1.0, high=1.0, size=self.in_weights.shape)) 
-                
+        
+        # Set last state
+        previous_state = np.zeros((1, self.n_nodes))
+        
         # Train iteratively
-        for t in range(inputs.shape[0]):
-            self.state[t] = np.tanh(self.in_weights @ inputs[t].T + self.weights @ current_state)
+        for t in range(rows):
+            self.state[t] = np.tanh(self.in_weights @ inputs[t].T + self.weights @ previous_state)
+            previous_state = self.state[t]
         
         # Concatenate inputs with node states
         train_x = self.state[burn_in:]  # Include everything after burn_in
@@ -185,14 +183,8 @@ class SimpleCycleReservoir:
         ridge_x = train_x.T @ train_x + self.regularization * np.eye(train_x.shape[1])
         ridge_y = train_x.T @ train_y 
         
-        # Full inverse solution
-        # self.out_weights = np.linalg.inv(ridge_x) @ ridge_y
-        
         # Solver solution (fast)
         self.out_weights = np.linalg.solve(ridge_x, ridge_y)
-
-        # Store last y value as starting value for predictions
-        self.y_last = y[-1]
         
         # Return all data for computation or visualization purposes (Note: these are normalized)
         return self.state, y, burn_in
@@ -300,7 +292,7 @@ class SimpleCycleReservoir:
         # y_predicted = self.denormalize(outputs=y_predicted)
         
         # Return predictions
-        return y_predicted
+        return y_predicted[1:]
         
     def error(self, predicted, target, method='mse', alpha=1.):
         """Evaluates the error between predictions and target values.
