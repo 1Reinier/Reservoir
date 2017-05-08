@@ -158,10 +158,10 @@ class SimpleCycleReservoir:
         self.state = np.zeros((rows, self.n_nodes))
         
         # Build inputs
-        inputs = np.ones((rows, 1))  # Add bias for all t = 0, ..., T
+        inputs = np.ones((rows, 1 + x.shape[1]))  # Add bias for all t = 0, ..., T
                 
         # Add data inputs if present
-        inputs = np.hstack((inputs, x))  # Add data inputs
+        inputs[:, 1:] = x  # Add data inputs
             
         # Set and scale input weights (for memory length and non-linearity)
         self.in_weights = np.full(shape=(self.n_nodes, inputs.shape[1]), fill_value=self.input_weight, dtype=float)
@@ -172,7 +172,9 @@ class SimpleCycleReservoir:
         
         # Train iteratively
         for t in range(rows):
-            self.state[t] = np.tanh(self.in_weights @ inputs[t].T + self.weights @ previous_state)
+            in_ = self.in_weights @ inputs[t].T
+            prop_ = self.weights @ previous_state
+            self.state[t] = np.tanh(in_ + prop_)
             previous_state = self.state[t]
         
         # Concatenate inputs with node states
@@ -189,7 +191,7 @@ class SimpleCycleReservoir:
         # Return all data for computation or visualization purposes (Note: these are normalized)
         return self.state, y, burn_in
             
-    def test(self, y, x=None, y_start=None, steps_ahead=1, scoring_method='mse', alpha=1., burn_in=30):
+    def test(self, y, x=None, x_start=None, steps_ahead=1, scoring_method='mse', alpha=1., burn_in=30):
         """Tests and scores against known output.
         
         Parameters
@@ -198,8 +200,8 @@ class SimpleCycleReservoir:
             Column vector of known outputs
         x : array or None
             Any inputs if required
-        y_start : float or None
-            Starting value from which to start testing. If None, last stored value from trainging will be used
+        x_start : float or None
+            Starting value from which to start testing
         steps_ahead : int or None
             Computes average error on n steps ahead prediction. If `None` all steps in y will be used.
         scoring_method : {'mse', 'rmse', 'nrmse', 'tanh'}
@@ -215,26 +217,22 @@ class SimpleCycleReservoir:
         """
         # Run prediction
         final_t = y.shape[0]
-        y_predicted = self.predict_stepwise(x, steps_ahead=steps_ahead)[:final_t]
+        y_predicted = self.predict_stepwise(x, steps_ahead=steps_ahead, x_start=x_start)[:-steps_ahead]
+        
+        # Checks
+        assert(y_predicted.shape[0] == y.shape[0])
             
         # Return error
-        return self.error(y_predicted[burn_in:], y[burn_in:], scoring_method, alpha=alpha)
+        return self.error(y_predicted[burn_in: final_t], y[burn_in:], scoring_method, alpha=alpha)
     
-    def predict_stepwise(self, x, steps_ahead=1):
+    def predict_stepwise(self, x, **kwargs):
         """Predicts a specified number of steps into the future for every time point in y-values array.
-        
-        E.g. if `steps_ahead` is 1 this produces a 1-step ahead prediction at every point in time.
         
         Parameters
         ----------
-        y : numpy array
-            Array with y-values. At every time point a prediction is made (excluding the current y)
         x : numpy array or None
-            If prediciton requires inputs, provide them here
-        steps_ahead : int (default 1)
-            The number of steps to predict into the future at every time point
-        y_start : float or None
-            Starting value from which to start prediction. If None, last stored value from training will be used
+            If prediciton requires inputs, provide them here. If y has T time samples, x should have at least T + N - 1,
+            time samples for N step ahead prediction, otherwise some step ahead predictions may be undefined (NaN)
         
         Returns
         -------
@@ -249,50 +247,30 @@ class SimpleCycleReservoir:
         # Normalize the arguments (like was done in train)
         # y = self.normalize(outputs=y)
         # x = self.normalize(inputs=x)
-        
-        # Timesteps in y
-        t_steps = x.shape[0]
 
-        # Choose correct input
-        inputs = np.ones((t_steps, 1))  # Add bias term
-        inputs = np.hstack((inputs, x))  # Add x inputs
+        # Construct input
+        inputs = np.ones((x.shape[0], 1 + x.shape[1]))  # Add bias term
+        inputs[:, 1:] = x  # Add x inputs
             
         # Run until we have no further inputs
-        time_length = t_steps - steps_ahead + 1
+        time_length = inputs.shape[0]
         
-        # Set parameters
-        y_predicted = np.zeros((time_length, steps_ahead))
+        # Initialize y_predicted with NaNs
+        y_predicted = np.full(shape=(time_length, 1), fill_value=np.nan, dtype=x.dtype)
         
         # Initialize state from last availble in train
         current_state = np.zeros_like(self.state[-1])
         
         # Predict iteratively
         for t in range(time_length):
+            current_state = np.tanh(self.in_weights @ inputs[t].T + self.weights @ prediction_state)
+            y_predicted[t, 0] = current_state @ self.out_weights
             
-            # State_buffer for steps ahead prediction
-            prediction_state = np.copy(current_state)
-            
-            # Predict stepwise at from current time step
-            for n in range(steps_ahead):
-                
-                # Get correct input based on
-                prediction_input = inputs[t + n]
-                
-                # Update
-                prediction_state = np.tanh(self.in_weights @ prediction_input.T + self.weights @ prediction_state)
-                
-                # Store for next iteration of t (evolves true state)
-                if n == 0:
-                    current_state = np.copy(prediction_state)
-                
-                # Prediction
-                y_predicted[t, n] = prediction_state @ self.out_weights
-        
         # Denormalize predictions
         # y_predicted = self.denormalize(outputs=y_predicted)
-        
+            
         # Return predictions
-        return y_predicted[1:]
+        return y_predicted
         
     def error(self, predicted, target, method='mse', alpha=1.):
         """Evaluates the error between predictions and target values.
