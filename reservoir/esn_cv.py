@@ -625,7 +625,7 @@ class EchoStateNetworkCV:
             pars = self.construct_arguments(parameters)
             print('Parameters:')
             print(k + ':', v for k, v in pars.items())    
-            print('Objective mean:', mean_score, '\n')
+            print('Score:', mean_score, '\n')
             
         # Return scores
         return mean_score.reshape(-1, 1) 
