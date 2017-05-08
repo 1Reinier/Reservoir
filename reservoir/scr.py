@@ -213,7 +213,7 @@ class SimpleCycleReservoir:
         """
         # Run prediction
         final_t = y.shape[0]
-        y_predicted = self.predict_stepwise(x, steps_ahead=steps_ahead, x_start=x_start)
+        y_predicted = self.predict_stepwise(x)
         
         # Checks
         assert(y_predicted.shape[0] == y.shape[0])
