@@ -621,8 +621,12 @@ class EchoStateNetworkCV:
         mean_score = scores.mean()
         
         # Inform user
-        if self.verbose:    
-            print('Objective mean:', mean_score, '\n', 'Params:\t', self.construct_arguments(parameters))
+        if self.verbose:
+            pars = self.construct_arguments(parameters)
+            
+            print('Parameters:')
+            print(k + ':', (np.round(v, decimals=2) if v.dtype == 'float' else v for k, v in pars.items())    
+            print('Objective mean:', mean_score, '\n')
             
         # Return scores
         return mean_score.reshape(-1, 1) 
