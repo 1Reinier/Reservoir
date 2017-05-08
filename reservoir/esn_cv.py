@@ -623,9 +623,8 @@ class EchoStateNetworkCV:
         # Inform user
         if self.verbose:
             pars = self.construct_arguments(parameters)
-            
             print('Parameters:')
-            print(k + ':', (np.round(v, decimals=2) if v.dtype == 'float' else v for k, v in pars.items())    
+            print(k + ':', v for k, v in pars.items())    
             print('Objective mean:', mean_score, '\n')
             
         # Return scores
