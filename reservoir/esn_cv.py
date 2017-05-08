@@ -619,7 +619,7 @@ class EchoStateNetworkCV:
         
         # Inform user
         if self.verbose:    
-            print('Objective mean:', mean_score, 'Scores:', scores.ravel())
+            print('Objective mean:', mean_score, '\n', 'Params:\t', self.construct_arguments(parameters))
             
         # Return scores
         return mean_score.reshape(-1, 1) 
