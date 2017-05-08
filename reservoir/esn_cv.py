@@ -221,7 +221,10 @@ class EchoStateNetworkCV:
         # Specific edits
         arguments['random_seed'] = self.seed
         if 'regularization' in arguments:
-            arguments['regularization'] = 10. ** arguments['regularization']  # Log scale     
+            arguments['regularization'] = 10. ** arguments['regularization']  # Log scale   
+        
+        if 'n_nodes' in arguments:
+            arguments['n_nodes'] = int(np.round(arguments['n_nodes']))
         
         if not self.feedback is None:
             arguments['feedback'] = self.feedback
