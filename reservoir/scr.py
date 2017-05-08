@@ -261,7 +261,7 @@ class SimpleCycleReservoir:
         
         # Predict iteratively
         for t in range(time_length):
-            current_state = np.tanh(inputs[t] @ self.in_weights + prediction_state @ self.weights)
+            current_state = np.tanh(inputs[t] @ self.in_weights + current_state @ self.weights)
             y_predicted[t, 0] = current_state @ self.out_weights
             
         # Denormalize predictions
