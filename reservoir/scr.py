@@ -164,7 +164,7 @@ class SimpleCycleReservoir:
         inputs[:, 1:] = x  # Add data inputs
             
         # Set and scale input weights (for memory length and non-linearity)
-        self.in_weights = np.full(shape=(self.n_nodes, inputs.shape[1]), fill_value=self.input_weight, dtype=float)
+        self.in_weights = np.full(shape=(inputs.shape[1], self.n_nodes), fill_value=self.input_weight, dtype=float)
         self.in_weights *= np.sign(np.random.uniform(low=-1.0, high=1.0, size=self.in_weights.shape)) 
         
         # Set last state
