@@ -219,7 +219,7 @@ class SimpleCycleReservoir:
         assert(y_predicted.shape[0] == y.shape[0])
             
         # Return error
-        return self.error(y_predicted[burn_in: final_t], y[burn_in:], scoring_method, alpha=alpha)
+        return self.error(y_predicted[burn_in:], y[burn_in:], scoring_method, alpha=alpha)
     
     def predict_stepwise(self, x, **kwargs):
         """Predicts a specified number of steps into the future for every time point in y-values array.
