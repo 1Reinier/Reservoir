@@ -624,7 +624,7 @@ class EchoStateNetworkCV:
         if self.verbose:
             pars = self.construct_arguments(parameters)
             print('Parameters:')
-            print(k + ':', v for k, v in pars.items())    
+            (print(k + ':', v, end=' ') for k, v in pars.items())
             print('Score:', mean_score, '\n')
             
         # Return scores
