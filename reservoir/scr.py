@@ -172,8 +172,8 @@ class SimpleCycleReservoir:
         
         # Train iteratively
         for t in range(rows):
-            in_ = self.in_weights @ inputs[t].T
-            prop_ = self.weights @ previous_state
+            in_ = inputs[t] @ self.in_weights
+            prop_ = previous_state @ self.weights
             self.state[t] = np.tanh(in_ + prop_)
             previous_state = self.state[t]
         
