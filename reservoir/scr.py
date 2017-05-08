@@ -189,7 +189,7 @@ class SimpleCycleReservoir:
         # Return all data for computation or visualization purposes (Note: these are normalized)
         return self.state, y, burn_in
             
-    def test(self, y, x=None, x_start=None, steps_ahead=1, scoring_method='mse', alpha=1., burn_in=30):
+    def test(self, y, x=None, scoring_method='mse', alpha=1., burn_in=30, **kwargs):
         """Tests and scores against known output.
         
         Parameters
@@ -198,12 +198,10 @@ class SimpleCycleReservoir:
             Column vector of known outputs
         x : array or None
             Any inputs if required
-        x_start : float or None
-            Starting value from which to start testing
-        steps_ahead : int or None
-            Computes average error on n steps ahead prediction. If `None` all steps in y will be used.
         scoring_method : {'mse', 'rmse', 'nrmse', 'tanh'}
             Evaluation metric used to calculate error
+        burn_in : int
+            Number of time steps to exclude from prediction initially
         alpha : float
             Alpha coefficient to scale the tanh error transformation: alpha * tanh{(1 / alpha) * error}
             
@@ -215,7 +213,7 @@ class SimpleCycleReservoir:
         """
         # Run prediction
         final_t = y.shape[0]
-        y_predicted = self.predict_stepwise(x, steps_ahead=steps_ahead, x_start=x_start)[:-steps_ahead]
+        y_predicted = self.predict_stepwise(x, steps_ahead=steps_ahead, x_start=x_start)
         
         # Checks
         assert(y_predicted.shape[0] == y.shape[0])
@@ -289,14 +287,6 @@ class SimpleCycleReservoir:
             Default is 1. Suggestions for squeezing errors > n * stddev of the original series 
             (for tanh-nrmse, this is the point after which difference with y = x is larger than 50%,
              and squeezing kicks in):
-             n  |  alpha
-            ------------
-             1      1.6
-             2      2.8
-             3      4.0
-             4      5.2
-             5      6.4
-             6      7.6
             
         Returns
         -------
@@ -304,15 +294,7 @@ class SimpleCycleReservoir:
             The error as evaluated with the metric chosen above
         
         """      
-        # Return error based on choices
-        if predicted.shape[1] == 1:
-            errors = predicted.ravel() - target.ravel()
-        else:
-            # Multiple prediction columns
-            errors = np.zeros(predicted.shape)
-            for i in steps_ahead:
-                predictions = predicted[:, i]
-                errors[:, i] = predictions.ravel()[:-i] - target.ravel()[i:]
+        errors = predicted.ravel() - target.ravel()
         
         # Adjust for NaN and np.inf in predictions (unstable solution)
         if not np.all(np.isfinite(predicted)):
