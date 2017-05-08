@@ -172,9 +172,7 @@ class SimpleCycleReservoir:
         
         # Train iteratively
         for t in range(rows):
-            in_ = inputs[t] @ self.in_weights
-            prop_ = previous_state @ self.weights
-            self.state[t] = np.tanh(in_ + prop_)
+            self.state[t] = np.tanh(inputs[t] @ self.in_weights + previous_state @ self.weights)
             previous_state = self.state[t]
         
         # Concatenate inputs with node states
@@ -263,7 +261,7 @@ class SimpleCycleReservoir:
         
         # Predict iteratively
         for t in range(time_length):
-            current_state = np.tanh(self.in_weights @ inputs[t].T + self.weights @ prediction_state)
+            current_state = np.tanh(inputs[t] @ self.in_weights + prediction_state @ self.weights)
             y_predicted[t, 0] = current_state @ self.out_weights
             
         # Denormalize predictions
