@@ -509,7 +509,10 @@ class EchoStateNetworkCV:
         
         # Show convergence
         if not store_path is None:
-            self.optimizer.plot_convergence(filename=store_path + '.convergence.png')
+            plot_path = store_path[-5] + '_convergence.png'
+        else:
+            plot_path = None
+        self.optimizer.plot_convergence(filename=plot_path)
             
         # Store in dict
         best_arguments = self.construct_arguments(self.optimizer.x_opt)
@@ -518,9 +521,6 @@ class EchoStateNetworkCV:
         if not store_path is None:
             with open(store_path, 'w+') as output_file:
                 json.dump(best_arguments, output_file, indent=4)
-        
-        # Show convergence
-        self.optimizer.plot_convergence()
         
         # Return best parameters
         return best_arguments
