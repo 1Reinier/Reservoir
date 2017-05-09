@@ -20,23 +20,22 @@ class GPflowModel(GPyOpt.models.GPModel):
     """
     analytical_gradient_prediction = True
     
-    def __init__(self, model_class=GPflow.gpr.GPR, normalize_Y=True, **kwargs):
+    def __init__(self, normalize_Y=True, **kwargs):
         super().__init__()
         self.normalize_Y = normalize_Y
-        self.model_class = model_class
         self.model = None
         
     def _build_model(self, X, Y):
         # Initialize model
         self.input_dim = X.shape[1]
         kernel = GPflow.kernels.Matern52(input_dim=self.input_dim, ARD=True, name="Matern52")
-        self.model = model_class(x, y, kern=kernel, name='Gaussian Process')
+        self.model = GPflow.gpr.GPR(x, y, kern=kernel, name='Gaussian Process')
         
         # Set proper prior close to Jeffrey's prior (1 / sigma)
-        prior = lambda: GPflow.priors.Gamma(1e-3, 1e3)  # parametrization: k, theta
-        self.model.kern.variance.prior = prior()
-        self.model.kern.lengthscales.prior = prior()
-        self.model.likelihood.variance.prior = prior()
+        prior = GPflow.priors.Gamma(-1e-3, 1e3)  # parametrization: k, theta
+        self.model.kern.variance.prior = prior
+        self.model.kern.lengthscales.prior = prior
+        self.model.likelihood.variance.prior = prior
     
     def updateModel(self, X_all, Y_all, X_new, Y_new):
         "Augment the dataset of the model"

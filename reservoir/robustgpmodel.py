@@ -77,7 +77,7 @@ class RobustGPModel(GPyOpt.models.GPModel):
         self.model.likelihood.variance.set_prior(prior)
         
         # Evaluation constriant
-        if self.exact_feval: # or noise_var < 1e-6:
+        if self.exact_feval or noise_var < 1e-6:
             self.model.Gaussian_noise.constrain_fixed(1e-6, warning=False)
         else: 
             self.model.Gaussian_noise.constrain_positive(warning=False)

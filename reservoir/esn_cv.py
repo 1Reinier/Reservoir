@@ -426,7 +426,7 @@ class EchoStateNetworkCV:
         # Select model and acquisition
         if self.mcmc_samples is None:
             acquisition_type = self.acquisition_type
-            model = RobustGPModel(normalize_Y=True)
+            model = GPflowModel(normalize_Y=True)
         else:
             acquisition_type = self.acquisition_type + '_MCMC'
             # Set GP kernel
@@ -474,7 +474,9 @@ class EchoStateNetworkCV:
         #initial_parameters = GPyOpt.util.stats.sample_initial_design('latin', space, self.initial_samples)  # Latin hypercube initialization
         
         # Pick evaluator
-        evaluator = GPyOpt.core.evaluators.Predictive(acquisition=acquisition, batch_size=self.batch_size, normalize_Y=True)
+        evaluator = GPyOpt.core.evaluators.batch_local_penalization.LocalPenalization(acquisition=acquisition, 
+                                                                                      batch_size=self.batch_size, 
+                                                                                      normalize_Y=True)
         
         # Build optimizer
         update_interval = 1 if self.mcmc_samples is None else 20
@@ -630,4 +632,4 @@ class EchoStateNetworkCV:
             print('Score:', mean_score, '\n')
             
         # Return scores
-        return mean_score.reshape(-1, 1) 
+        return mean_score.reshape(-1, 1)
