@@ -7,6 +7,7 @@ import GPy
 import GPyOpt
 import copy
 import json
+import pyDOE
 from collections import OrderedDict
 
 
@@ -471,10 +472,10 @@ class EchoStateNetworkCV:
         
         # Set initial design
         n = len(self.parameters)
-        #noise_estiation_parameters = np.random.uniform(-1e-6, 1e-6, size=(30, n)) + 0.5
-        random_samples = np.random.uniform(size=(self.initial_samples, n))
-        initial_parameters = np.vstack((noise_estiation_parameters, random_samples))
-        #initial_parameters = GPyOpt.util.stats.sample_initial_design('latin', space, self.initial_samples)  # Latin hypercube initialization
+        # noise_estiation_parameters = np.random.uniform(-1e-6, 1e-6, size=(30, n)) + 0.5
+        # random_samples = np.random.uniform(size=(self.initial_samples, n))
+        # initial_parameters = np.vstack((noise_estiation_parameters, random_samples))
+        initial_parameters = pyDOE.lhs(n, self.initial_samples, 'cm') # Latin hypercube initialization
         
         # Pick evaluator
         evaluator = GPyOpt.core.evaluators.batch_local_penalization.LocalPenalization(acquisition=lp_acquisition, 
