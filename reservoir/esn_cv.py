@@ -477,7 +477,7 @@ class EchoStateNetworkCV:
         #initial_parameters = GPyOpt.util.stats.sample_initial_design('latin', space, self.initial_samples)  # Latin hypercube initialization
         
         # Pick evaluator
-        evaluator = GPyOpt.core.evaluators.batch_local_penalization.LocalPenalization(acquisition=acquisition, 
+        evaluator = GPyOpt.core.evaluators.batch_local_penalization.LocalPenalization(acquisition=lp_acquisition, 
                                                                                       batch_size=self.batch_size, 
                                                                                       normalize_Y=True)
         
