@@ -455,10 +455,13 @@ class EchoStateNetworkCV:
         if self.verbose:
             print('Using model:', model.__class__.__name__, '\n')
         
-        # Set acquisition TODO: Local Penalization
+        # Set acquisition
         acquisition_optimizer = GPyOpt.optimization.AcquisitionOptimizer(space, optimizer='lbfgs')
         SelectedAcquisition = GPyOpt.acquisitions.select_acquisition(acquisition_type)
         acquisition = SelectedAcquisition(model=model, space=space, optimizer=acquisition_optimizer)
+        
+        # Add Local Penalization
+        lp_acquisition = GPyOpt.acquisitions.LP.AcquisitionLP(model, space, acquisition_optimizer, acquisition, transform='none')
         
         # Set jitter to low number if used
         try:
@@ -469,7 +472,7 @@ class EchoStateNetworkCV:
         # Set initial design
         n = len(self.parameters)
         noise_estiation_parameters = np.random.uniform(-1e-6, 1e-6, size=(30, n)) + 0.5
-        random_samples = np.random.uniform(size=(self.initial_samples - 29, n))
+        random_samples = np.random.uniform(size=(self.initial_samples - 30, n))
         initial_parameters = np.vstack((noise_estiation_parameters, random_samples))
         #initial_parameters = GPyOpt.util.stats.sample_initial_design('latin', space, self.initial_samples)  # Latin hypercube initialization
         
@@ -481,7 +484,7 @@ class EchoStateNetworkCV:
         # Build optimizer
         update_interval = 1 if self.mcmc_samples is None else 20
         self.optimizer = GPyOpt.methods.ModularBayesianOptimization(model=model, space=space, objective=objective, 
-                                                                    acquisition=acquisition, evaluator=evaluator, 
+                                                                    acquisition=lp_acquisition, evaluator=evaluator,  # N.B. LP acquisition!
                                                                     X_init=initial_parameters, normalize_Y=True, 
                                                                     model_update_interval=update_interval)
         self.optimizer.modular_optimization = True
