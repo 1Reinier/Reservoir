@@ -187,7 +187,7 @@ class SimpleCycleReservoir:
         try:
             self.out_weights = np.linalg.solve(ridge_x, ridge_y)
         except np.linalg.LinAlgError:
-            self.out_weights = scipy.linalg.pinvh(ridge_x, ridge_y)  # More robust
+            self.out_weights = scipy.linalg.pinvh(ridge_x, ridge_y, cond=-1, rcond=-1)  # More robust
         
         # Return all data for computation or visualization purposes (Note: these are normalized)
         return self.state, y, burn_in
