@@ -1,5 +1,5 @@
-from .esn import EchoStateNetwork
 import numpy as np
+import scipy
 
 
 __all__ = ['SimpleCycleReservoir']
@@ -187,7 +187,7 @@ class SimpleCycleReservoir:
         try:
             self.out_weights = np.linalg.solve(ridge_x, ridge_y)
         except np.linalg.LinAlgError:
-            self.out_weights = np.linalg.pinvh(ridge_x, ridge_y)  # More robust
+            self.out_weights = scipy.linalg.pinvh(ridge_x, ridge_y)  # More robust
         
         # Return all data for computation or visualization purposes (Note: these are normalized)
         return self.state, y, burn_in
