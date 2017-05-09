@@ -184,7 +184,10 @@ class SimpleCycleReservoir:
         ridge_y = train_x.T @ train_y 
         
         # Solver solution (fast)
-        self.out_weights = np.linalg.solve(ridge_x, ridge_y)
+        try:
+            self.out_weights = np.linalg.solve(ridge_x, ridge_y)
+        except np.linalg.LinAlgError:
+            self.out_weights = np.linalg.pinvh(ridge_x, ridge_y)  # More robust
         
         # Return all data for computation or visualization purposes (Note: these are normalized)
         return self.state, y, burn_in
