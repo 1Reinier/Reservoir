@@ -8,6 +8,7 @@ import GPyOpt
 import copy
 import json
 import pyDOE
+import tdqm
 from collections import OrderedDict
 
 
@@ -498,6 +499,7 @@ class EchoStateNetworkCV:
         
         if self.verbose:
             print("Starting optimization...")
+            self.pbar = tqdm(total=self.max_iterations, unit='objective evalutions')
         
         # Optimize
         self.optimizer.run_optimization(eps=self.eps, max_iter=self.max_iterations, max_time=self.max_time, 
@@ -506,6 +508,7 @@ class EchoStateNetworkCV:
         # Inform user
         if self.verbose:        
             print('Done.')
+            self.pbar.close()
             
         # Purge temporary data references
         del self.x
@@ -628,12 +631,9 @@ class EchoStateNetworkCV:
         
         # Inform user
         if self.verbose:
+            self.pbar.update(1)
             pars = self.construct_arguments(parameters)
-            print('Parameters:')
-            for k, v in pars.items():
-                print(k + ':', v, end=', ')
-            print('')
-            print('Score:', mean_score, '\n')
+            pbar.set_postfix(**{'Current score:': mean_score}, **pars)
             
         # Return scores
         return mean_score.reshape(-1, 1)
