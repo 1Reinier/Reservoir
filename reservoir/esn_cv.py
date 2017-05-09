@@ -8,7 +8,7 @@ import GPyOpt
 import copy
 import json
 import pyDOE
-import tdqm
+import tqdm
 from collections import OrderedDict
 
 
@@ -499,7 +499,7 @@ class EchoStateNetworkCV:
         
         if self.verbose:
             print("Starting optimization...")
-            self.pbar = tqdm(total=self.max_iterations, unit='objective evalutions')
+            self.pbar = tqdm.tqdm(total=self.max_iterations, unit='objective evalutions')
         
         # Optimize
         self.optimizer.run_optimization(eps=self.eps, max_iter=self.max_iterations, max_time=self.max_time, 
