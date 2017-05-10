@@ -7,7 +7,7 @@ __all__ = ['SimpleCycleReservoir']
 
 class SimpleCycleReservoir:
     
-    def __init__(self, n_nodes=30, regularization=1e-8, cyclic_weight=0.5, input_weight=0.5, random_seed=123):
+    def __init__(self, n_nodes=30, regularization=1e-8, cyclic_weight=0.5, input_weight=0.5, raom_seed=123):
         # Save attributes
         self.n_nodes = int(np.round(n_nodes))
         self.regularization = regularization
@@ -53,15 +53,9 @@ class SimpleCycleReservoir:
         
         # Build state matrix
         state = np.zeros((rows, self.n_nodes))
-        
-        # Build inputs
-        inputs = np.ones((rows, 1 + x.shape[1]))  # Add bias for all t = 0, ..., T
-                
-        # Add data inputs if present
-        inputs[:, 1:] = x  # Add data inputs
             
         # Set and scale input weights (for memory length and non-linearity)
-        self.in_weights = np.full(shape=(inputs.shape[1], self.n_nodes), fill_value=self.input_weight, dtype=float)
+        self.in_weights = np.full(shape=(x.shape[1], self.n_nodes), fill_value=self.input_weight, dtype=float)
         self.in_weights *= np.sign(random_state.uniform(low=-1.0, high=1.0, size=self.in_weights.shape)) 
         
         # Set last state
@@ -69,7 +63,7 @@ class SimpleCycleReservoir:
         
         # Train iteratively
         for t in range(rows):
-            state[t] = np.tanh(inputs[t] @ self.in_weights + previous_state @ self.weights)
+            state[t] = np.tanh(x[t] @ self.in_weights + previous_state @ self.weights)
             previous_state = state[t]
         
         return state[burn_in:]
@@ -181,17 +175,19 @@ class SimpleCycleReservoir:
         state = self.generate_states(x, burn_in=burn_in)
         
         # Concatenate inputs with node states
-        train_x = state  
+        train_x = np.hstack((np.ones(shape=(state.shape[0], 1), dtype=state.dtype), state))  # Add intercept
         train_y = y[burn_in:]  # Include everything after burn_in
         
         # Ridge regression
         ridge_x = train_x.T @ train_x + self.regularization * np.eye(train_x.shape[1])
         ridge_y = train_x.T @ train_y 
         
-        # Solver solution (fast)
+        
         try:
+            # Solver solution (fast)
             self.out_weights = np.linalg.solve(ridge_x, ridge_y).reshape(-1, 1)
         except np.linalg.LinAlgError:
+            # Pseudo-inverse solution
             self.out_weights = scipy.linalg.pinvh(ridge_x, ridge_y, rcond=1e6*np.finfo('d').eps).reshape(-1, 1)  # Robust solution if ridge_x is singular
         
         # Return all data for computation or visualization purposes (Note: these are normalized)

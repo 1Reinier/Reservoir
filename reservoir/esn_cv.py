@@ -466,10 +466,10 @@ class EchoStateNetworkCV:
         lp_acquisition = GPyOpt.acquisitions.LP.AcquisitionLP(model, space, acquisition_optimizer, acquisition, transform='none')
         
         # Set jitter to low number if used
-        try:
-            acquisition.jitter = 1e-6
-        except AttributeError:
-            pass
+        # try:
+        #     acquisition.jitter = 1e-6
+        # except AttributeError:
+        #     pass
         
         # Set initial design
         n = len(self.parameters)
