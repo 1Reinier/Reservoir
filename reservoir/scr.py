@@ -53,7 +53,7 @@ class SimpleCycleReservoir:
         
         # Build state matrix
         state = np.zeros((rows, 1 + self.n_nodes))
-        state[:, 0] = np.ones(shape=(state.shape[0], 1), dtype=state.dtype)  # Add intercept
+        state[:, 0] = np.ones(shape=state.shape[0], dtype=state.dtype)  # Add intercept
             
         # Set and scale input weights (for memory length and non-linearity)
         self.in_weights = np.full(shape=(x.shape[1], self.n_nodes), fill_value=self.input_weight, dtype=float)
