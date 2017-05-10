@@ -50,7 +50,7 @@ class EchoStateNetwork:
     """
     
     def __init__(self, n_nodes=1000, input_scaling=0.5, feedback_scaling=0.5, spectral_radius=0.8, 
-                 leaking_rate=1.0, connectivity=0.1, regularization=1e-8, feedback=True, random_seed=42):
+                 leaking_rate=1.0, connectivity=0.1, regularization=1e-8, feedback=True, random_seed=123):
         # Parameters
         self.n_nodes = int(np.round(n_nodes))
         self.input_scaling = input_scaling
