@@ -52,18 +52,19 @@ class SimpleCycleReservoir:
         rows = x.shape[0]
         
         # Build state matrix
-        state = np.zeros((rows, self.n_nodes))
+        state = np.zeros((rows, 1 + self.n_nodes))
+        state[:, 0] = np.ones(shape=(state.shape[0], 1), dtype=state.dtype)  # Add intercept
             
         # Set and scale input weights (for memory length and non-linearity)
         self.in_weights = np.full(shape=(x.shape[1], self.n_nodes), fill_value=self.input_weight, dtype=float)
         self.in_weights *= np.sign(random_state.uniform(low=-1.0, high=1.0, size=self.in_weights.shape)) 
         
         # Set last state
-        previous_state = np.zeros((1, self.n_nodes))
+        previous_state = state[0]
         
         # Train iteratively
         for t in range(rows):
-            state[t] = np.tanh(x[t] @ self.in_weights + previous_state @ self.weights)
+            state[1:t] = np.tanh(x[t] @ self.in_weights + previous_state @ self.weights)
             previous_state = state[t]
         
         return state[burn_in:]
@@ -175,16 +176,16 @@ class SimpleCycleReservoir:
         state = self.generate_states(x, burn_in=burn_in)
         
         # Concatenate inputs with node states
-        train_x = np.hstack((np.ones(shape=(state.shape[0], 1), dtype=state.dtype), state))  # Add intercept
+        train_x = state  # Add intercept
         train_y = y[burn_in:]  # Include everything after burn_in
         
         # Ridge regression
         ridge_x = train_x.T @ train_x + self.regularization * np.eye(train_x.shape[1])
         ridge_y = train_x.T @ train_y 
         
-        
+        # Solve for out weights
         try:
-            # Solver solution (fast)
+            # Cholesky solution (fast)
             self.out_weights = np.linalg.solve(ridge_x, ridge_y).reshape(-1, 1)
         except np.linalg.LinAlgError:
             # Pseudo-inverse solution
