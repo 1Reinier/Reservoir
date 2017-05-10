@@ -192,7 +192,7 @@ class SimpleCycleReservoir:
         try:
             self.out_weights = np.linalg.solve(ridge_x, ridge_y)
         except np.linalg.LinAlgError:
-            self.out_weights = scipy.linalg.pinvh(ridge_x, ridge_y, cond=-1)  # Robust solution if ridge_x is singular
+            self.out_weights = scipy.linalg.pinvh(ridge_x, ridge_y, rcond=1e6*np.finfo(t).eps)  # Robust solution if ridge_x is singular
         
         # Return all data for computation or visualization purposes (Note: these are normalized)
         return state, y, burn_in
