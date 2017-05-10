@@ -8,7 +8,7 @@ import GPyOpt
 import copy
 import json
 import pyDOE
-import tqdm
+from tqdm import tqdm
 from collections import OrderedDict
 
 
