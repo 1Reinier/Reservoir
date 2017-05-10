@@ -7,7 +7,7 @@ __all__ = ['SimpleCycleReservoir']
 
 class SimpleCycleReservoir:
     
-    def __init__(self, n_nodes=30, regularization=1e-8, cyclic_weight=0.5, input_weight=0.5, random_seed=42):
+    def __init__(self, n_nodes=30, regularization=1e-8, cyclic_weight=0.5, input_weight=0.5, random_seed=123):
         # Save attributes
         self.n_nodes = int(np.round(n_nodes))
         self.regularization = regularization
@@ -42,7 +42,7 @@ class SimpleCycleReservoir:
     def generate_states(self, x, burn_in=30):
         """Generates states given some input x"""
         # Initialize new random state
-        random_state = np.random.RandomState(self.seed + 1)
+        random_state = np.random.RandomState(self.seed)
             
         # Normalize inputs and outputs
         # y = self.normalize(outputs=y, keep=True)
