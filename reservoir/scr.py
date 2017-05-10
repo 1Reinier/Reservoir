@@ -63,7 +63,7 @@ class SimpleCycleReservoir:
         
         # Train iteratively
         for t in range(rows):
-            state[t] = np.tanh(self.in_weights @ x[t] @  + self.weights @ previous_state)
+            state[t] = np.tanh(self.in_weights @ x[t] + self.weights @ previous_state)
             previous_state = state[t]
         
         # Add intercept
