@@ -176,10 +176,10 @@ class SimpleCycleReservoir:
             for diagnostic purposes  (e.g. vizualization of activations).
         
         """    
-        self.state = generate_states(x, burn_in=burn_in)
+        state = generate_states(x, burn_in=burn_in)
         
         # Concatenate inputs with node states
-        train_x = self.state  
+        train_x = state  
         train_y = y[burn_in:]  # Include everything after burn_in
         
         # Ridge regression
@@ -193,7 +193,7 @@ class SimpleCycleReservoir:
             self.out_weights = scipy.linalg.pinvh(ridge_x, ridge_y, cond=-1, rcond=-1)  # Robust solution if ridge_x is singular
         
         # Return all data for computation or visualization purposes (Note: these are normalized)
-        return self.state, y, burn_in
+        return state, y, burn_in
             
     def test(self, y, x=None, scoring_method='mse', alpha=1., burn_in=30, **kwargs):
         """Tests and scores against known output.
