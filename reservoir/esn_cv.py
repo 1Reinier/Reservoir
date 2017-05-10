@@ -256,7 +256,7 @@ class EchoStateNetworkCV:
             raise ValueError("y-array is not 2 dimensional")
         
         if verbose and y.shape[0] < y.shape[1]:
-            tqdm.write("Warning: y-array has more series (columns) than samples (rows). Check if this is correct")
+            tqdm.write(file=None, s="Warning: y-array has more series (columns) than samples (rows). Check if this is correct")
         
         # Checks for x
         if not x is None:
@@ -325,7 +325,7 @@ class EchoStateNetworkCV:
             pass
         
         if self.verbose:
-            tqdm.write("Model initialization and exploration run...")
+            tqdm.write(file=None, s="Model initialization and exploration run...")
         
         # Build optimizer    
         self.optimizer = GPyOpt.methods.BayesianOptimization(f=self.objective_sampler,
@@ -346,12 +346,12 @@ class EchoStateNetworkCV:
                                                              
         # Show model
         if self.verbose:
-            tqdm.write("Model initialization done.", '\n')
-            tqdm.write(self.optimizer.model.model, '\n')
-            tqdm.write(self.optimizer.model.model.kern.lengthscale, '\n')
+            tqdm.write(file=None, s="Model initialization done.", '\n')
+            tqdm.write(file=None, s=self.optimizer.model.model, '\n')
+            tqdm.write(file=None, s=self.optimizer.model.model.kern.lengthscale, '\n')
         
         if self.verbose:
-            tqdm.write("Starting optimization...")
+            tqdm.write(file=None, s="Starting optimization...")
         
         # Optimize
         self.optimizer.run_optimization(eps=self.eps, max_iter=self.max_iterations, max_time=self.max_time, 
@@ -359,7 +359,7 @@ class EchoStateNetworkCV:
         
         # Inform user
         if self.verbose:        
-            tqdm.write('Done.')
+            tqdm.write(file=None, s='Done.')
             
         # Purge temporary data references
         del self.x
@@ -413,7 +413,7 @@ class EchoStateNetworkCV:
         
         # Inform user    
         if self.verbose:
-            tqdm.write("Model initialization and exploration run...")
+            tqdm.write(file=None, s="Model initialization and exploration run...")
         
         
         # Define objective
@@ -455,7 +455,7 @@ class EchoStateNetworkCV:
         
         # Explicitly state model
         if self.verbose:
-            tqdm.write('Using model:', model.__class__.__name__, '\n')
+            tqdm.write(file=None, s='Using model:', model.__class__.__name__, '\n')
         
         # Set acquisition
         acquisition_optimizer = GPyOpt.optimization.AcquisitionOptimizer(space, optimizer='lbfgs')
@@ -484,7 +484,7 @@ class EchoStateNetworkCV:
                                                                                       normalize_Y=True)
         # Show progress bar
         if self.verbose:
-            tqdm.write("Starting optimization...")
+            tqdm.write(file=None, s="Starting optimization...")
             self.pbar = tqdm(total=self.max_iterations, unit=' objective evalutions')
         
         # Build optimizer
@@ -497,9 +497,9 @@ class EchoStateNetworkCV:
                                      
         # Show model
         if self.verbose:
-            tqdm.write("Model initialization done.", '\n')
-            tqdm.write(self.optimizer.model.model, '\n')
-            tqdm.write(self.optimizer.model.model.kern.lengthscale, '\n')
+            tqdm.write(file=None, s="Model initialization done.", '\n')
+            tqdm.write(file=None, s=self.optimizer.model.model, '\n')
+            tqdm.write(file=None, s=self.optimizer.model.model.kern.lengthscale, '\n')
         
         # Optimize
         self.optimizer.run_optimization(eps=self.eps, 
@@ -509,7 +509,7 @@ class EchoStateNetworkCV:
         
         # Inform user
         if self.verbose:        
-            tqdm.write('Done.')
+            tqdm.write(file=None, s='Done.')
             self.pbar.close()
             
         # Purge temporary data references
