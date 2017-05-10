@@ -482,6 +482,10 @@ class EchoStateNetworkCV:
         evaluator = GPyOpt.core.evaluators.batch_local_penalization.LocalPenalization(acquisition=lp_acquisition, 
                                                                                       batch_size=self.batch_size, 
                                                                                       normalize_Y=True)
+        # Show progress bar
+        if self.verbose:
+            print("Starting optimization...")
+            self.pbar = tqdm(total=self.max_iterations, unit='objective evalutions')
         
         # Build optimizer
         update_interval = 1 if self.mcmc_samples is None else 20
@@ -496,11 +500,6 @@ class EchoStateNetworkCV:
             print("Model initialization done.", '\n')
             print(self.optimizer.model.model, '\n')
             print(self.optimizer.model.model.kern.lengthscale, '\n')
-        
-        if self.verbose:
-            print("Starting optimization...")
-            self.pbar = tqdm(total=self.max_iterations, unit='objective evalutions')
-            print(self.pbar, max_iterations)
         
         # Optimize
         self.optimizer.run_optimization(eps=self.eps, max_iter=self.max_iterations, max_time=self.max_time, 
