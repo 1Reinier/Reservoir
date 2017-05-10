@@ -52,8 +52,7 @@ class SimpleCycleReservoir:
         rows = x.shape[0]
         
         # Build state matrix
-        state = np.zeros((rows, 1 + self.n_nodes))
-        state[:, 0] = np.ones(shape=state.shape[0], dtype=state.dtype)  # Add intercept
+        state = np.zeros((rows, self.n_nodes))
             
         # Set and scale input weights (for memory length and non-linearity)
         self.in_weights = np.full(shape=(x.shape[1], self.n_nodes), fill_value=self.input_weight, dtype=float)
@@ -64,8 +63,12 @@ class SimpleCycleReservoir:
         
         # Train iteratively
         for t in range(rows):
-            state[t, 1:] = np.tanh(x[t] @ self.in_weights + previous_state @ self.weights)
+            state[t] = np.tanh(x[t] @ self.in_weights + previous_state @ self.weights)
             previous_state = state[t]
+        
+        # Add intercept
+        intercept = np.ones(shape=(rows, 1), dtype=state.dtype)
+        state = np.hstack((intercept, state)))
         
         return state[burn_in:]
         
