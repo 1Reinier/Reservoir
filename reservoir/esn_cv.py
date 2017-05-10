@@ -500,6 +500,7 @@ class EchoStateNetworkCV:
         if self.verbose:
             print("Starting optimization...")
             self.pbar = tqdm(total=self.max_iterations, unit='objective evalutions')
+            print(self.pbar, max_iterations)
         
         # Optimize
         self.optimizer.run_optimization(eps=self.eps, max_iter=self.max_iterations, max_time=self.max_time, 
