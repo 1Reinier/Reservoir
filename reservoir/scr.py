@@ -18,7 +18,8 @@ class SimpleCycleReservoir:
         # Generate reservoir
         self.generate_reservoir()
         
-    def generate_reservoir(self):        
+    def generate_reservoir(self):
+        """Generates transition weights"""
         # Set reservoir weights
         self.weights = np.zeros((self.n_nodes, self.n_nodes))
         self.weights[0, -1] = self.cyclic_weight
@@ -31,7 +32,7 @@ class SimpleCycleReservoir:
     def draw_reservoir(self):
         """Vizualizes reservoir. 
         
-        Requires 'networkx' package.
+        Note: Requires 'networkx' package.
         
         """
         import networkx as nx
@@ -39,6 +40,7 @@ class SimpleCycleReservoir:
         nx.draw(graph)
         
     def generate_states(self, x, burn_in=30):
+        """Generates states given some input x"""
         # Initialize new random state
         random_state = np.random.RandomState(self.seed + 1)
             
