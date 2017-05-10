@@ -176,7 +176,7 @@ class SimpleCycleReservoir:
             for diagnostic purposes  (e.g. vizualization of activations).
         
         """    
-        state = generate_states(x, burn_in=burn_in)
+        state = self.generate_states(x, burn_in=burn_in)
         
         # Concatenate inputs with node states
         train_x = state  
@@ -247,7 +247,7 @@ class SimpleCycleReservoir:
             raise ValueError('Error: ESN not trained yet')
         
         # Get states
-        state = generate_states(x, burn_in=0)
+        state = self.generate_states(x, burn_in=0)
         
         # Predict
         y_predicted = state @ self.out_weights
