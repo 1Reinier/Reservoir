@@ -190,9 +190,9 @@ class SimpleCycleReservoir:
         
         # Solver solution (fast)
         try:
-            self.out_weights = np.linalg.solve(ridge_x, ridge_y)
+            self.out_weights = np.linalg.solve(ridge_x, ridge_y).reshape(-1, 1)
         except np.linalg.LinAlgError:
-            self.out_weights = scipy.linalg.pinvh(ridge_x, ridge_y, rcond=1e6*np.finfo('d').eps)  # Robust solution if ridge_x is singular
+            self.out_weights = scipy.linalg.pinvh(ridge_x, ridge_y, rcond=1e6*np.finfo('d').eps).reshape(-1, 1)  # Robust solution if ridge_x is singular
         
         # Return all data for computation or visualization purposes (Note: these are normalized)
         return state, y, burn_in
@@ -229,7 +229,7 @@ class SimpleCycleReservoir:
         # Return error
         return self.error(y_predicted[burn_in:], y[burn_in:], scoring_method, alpha=alpha)
     
-    def predict_stepwise(self, x, **kwargs):
+    def predict_stepwise(self, x, out_weights=None, **kwargs):
         """Predicts a specified number of steps into the future for every time point in y-values array.
         
         Parameters
@@ -237,6 +237,8 @@ class SimpleCycleReservoir:
         x : numpy array or None
             If prediciton requires inputs, provide them here. If y has T time samples, x should have at least T + N - 1,
             time samples for N step ahead prediction, otherwise some step ahead predictions may be undefined (NaN)
+        out_weights : numpy array (2D column vector)
+            The weights to use for prediction. Overrides any trained weights stored on the object.
         
         Returns
         -------
@@ -245,14 +247,20 @@ class SimpleCycleReservoir:
         
         """
         # Check if ESN has been trained
-        if self.out_weights is None:
-            raise ValueError('Error: ESN not trained yet')
+        if self.out_weights is None and out_weights is None:
+            raise ValueError('Error: Train model or provide out_weights')
         
         # Get states
         state = self.generate_states(x, burn_in=0)
         
+        # Select weights
+        if not out_weights is None:
+            weights = out_weights  # Provided
+        else:
+            weights = self.out_weights  # From training
+        
         # Predict
-        y_predicted = state @ self.out_weights
+        y_predicted = state @ weights
             
         # Denormalize predictions
         # y_predicted = self.denormalize(outputs=y_predicted)
