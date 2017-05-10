@@ -18,9 +18,7 @@ class SimpleCycleReservoir:
         # Generate reservoir
         self.generate_reservoir()
         
-    def generate_reservoir(self):
-        random_state = np.random.RandomState(self.seed)
-        
+    def generate_reservoir(self):        
         # Set reservoir weights
         self.weights = np.zeros((self.n_nodes, self.n_nodes))
         self.weights[0, -1] = self.cyclic_weight
@@ -29,7 +27,7 @@ class SimpleCycleReservoir:
         
         # Set out to none to indicate untrained ESN
         self.out_weights = None
-        
+    
     def draw_reservoir(self):
         """Vizualizes reservoir. 
         
@@ -39,6 +37,40 @@ class SimpleCycleReservoir:
         import networkx as nx
         graph = nx.DiGraph(self.weights)
         nx.draw(graph)
+        
+    def generate_states(self, x, burn_in=30):
+        # Initialize new random state
+        random_state = np.random.RandomState(self.seed + 1)
+            
+        # Normalize inputs and outputs
+        # y = self.normalize(outputs=y, keep=True)
+        # x = self.normalize(inputs=x, keep=True)
+        
+        # Calculate correct shape
+        rows = x.shape[0]
+        
+        # Build state matrix
+        state = np.zeros((rows, self.n_nodes))
+        
+        # Build inputs
+        inputs = np.ones((rows, 1 + x.shape[1]))  # Add bias for all t = 0, ..., T
+                
+        # Add data inputs if present
+        inputs[:, 1:] = x  # Add data inputs
+            
+        # Set and scale input weights (for memory length and non-linearity)
+        self.in_weights = np.full(shape=(inputs.shape[1], self.n_nodes), fill_value=self.input_weight, dtype=float)
+        self.in_weights *= np.sign(random_state.uniform(low=-1.0, high=1.0, size=self.in_weights.shape)) 
+        
+        # Set last state
+        previous_state = np.zeros((1, self.n_nodes))
+        
+        # Train iteratively
+        for t in range(rows):
+            state[t] = np.tanh(inputs[t] @ self.in_weights + previous_state @ self.weights)
+            previous_state = state[t]
+        
+        return state[burn_in:]
         
     def normalize(self, inputs=None, outputs=None, keep=False):
         """Normalizes array by column (along rows) and stores mean and standard devation.
@@ -144,40 +176,11 @@ class SimpleCycleReservoir:
             for diagnostic purposes  (e.g. vizualization of activations).
         
         """    
-        # Initialize new random state
-        random_state = np.random.RandomState(self.seed + 1)
-            
-        # Normalize inputs and outputs
-        # y = self.normalize(outputs=y, keep=True)
-        # x = self.normalize(inputs=x, keep=True)
-        
-        # Calculate correct shape
-        rows = y.shape[0]
-        
-        # Build state matrix
-        self.state = np.zeros((rows, self.n_nodes))
-        
-        # Build inputs
-        inputs = np.ones((rows, 1 + x.shape[1]))  # Add bias for all t = 0, ..., T
-                
-        # Add data inputs if present
-        inputs[:, 1:] = x  # Add data inputs
-            
-        # Set and scale input weights (for memory length and non-linearity)
-        self.in_weights = np.full(shape=(inputs.shape[1], self.n_nodes), fill_value=self.input_weight, dtype=float)
-        self.in_weights *= np.sign(np.random.uniform(low=-1.0, high=1.0, size=self.in_weights.shape)) 
-        
-        # Set last state
-        previous_state = np.zeros((1, self.n_nodes))
-        
-        # Train iteratively
-        for t in range(rows):
-            self.state[t] = np.tanh(inputs[t] @ self.in_weights + previous_state @ self.weights)
-            previous_state = self.state[t]
+        self.state = generate_states(x, burn_in=burn_in)
         
         # Concatenate inputs with node states
-        train_x = self.state[burn_in:]  # Include everything after burn_in
-        train_y = y[burn_in:]
+        train_x = self.state  
+        train_y = y[burn_in:]  # Include everything after burn_in
         
         # Ridge regression
         ridge_x = train_x.T @ train_x + self.regularization * np.eye(train_x.shape[1])
@@ -187,7 +190,7 @@ class SimpleCycleReservoir:
         try:
             self.out_weights = np.linalg.solve(ridge_x, ridge_y)
         except np.linalg.LinAlgError:
-            self.out_weights = scipy.linalg.pinvh(ridge_x, ridge_y, cond=-1, rcond=-1)  # More robust
+            self.out_weights = scipy.linalg.pinvh(ridge_x, ridge_y, cond=-1, rcond=-1)  # Robust solution if ridge_x is singular
         
         # Return all data for computation or visualization purposes (Note: these are normalized)
         return self.state, y, burn_in
@@ -243,27 +246,11 @@ class SimpleCycleReservoir:
         if self.out_weights is None:
             raise ValueError('Error: ESN not trained yet')
         
-        # Normalize the arguments (like was done in train)
-        # y = self.normalize(outputs=y)
-        # x = self.normalize(inputs=x)
-
-        # Construct input
-        inputs = np.ones((x.shape[0], 1 + x.shape[1]))  # Add bias term
-        inputs[:, 1:] = x  # Add x inputs
-            
-        # Run until we have no further inputs
-        time_length = inputs.shape[0]
+        # Get states
+        state = generate_states(x, burn_in=0)
         
-        # Initialize y_predicted with NaNs
-        y_predicted = np.full(shape=(time_length, 1), fill_value=np.nan, dtype=x.dtype)
-        
-        # Initialize state from last availble in train
-        current_state = np.zeros_like(self.state[-1])
-        
-        # Predict iteratively
-        for t in range(time_length):
-            current_state = np.tanh(inputs[t] @ self.in_weights + current_state @ self.weights)
-            y_predicted[t, 0] = current_state @ self.out_weights
+        # Predict
+        y_predicted = state @ self.out_weights
             
         # Denormalize predictions
         # y_predicted = self.denormalize(outputs=y_predicted)
