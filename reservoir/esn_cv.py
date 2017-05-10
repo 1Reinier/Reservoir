@@ -633,7 +633,7 @@ class EchoStateNetworkCV:
         if self.verbose:
             self.pbar.update(1)
             pars = self.construct_arguments(parameters)
-            pbar.set_postfix(**{'Current score:': mean_score}, **pars)
+            self.pbar.set_postfix(**{'Current score:': mean_score}, **pars)
             
         # Return scores
         return mean_score.reshape(-1, 1)
