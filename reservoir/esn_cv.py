@@ -324,8 +324,8 @@ class EchoStateNetworkCV:
             #keyword_arguments['evaluator_type'] = 'local_penalization'  # BUG: convergence is not consistent
             pass
         
-        if self.verbose:
-            tqdm.write("Model initialization and exploration run...")
+        # if self.verbose:
+        #     tqdm.write("Model initialization and exploration run...")
         
         # Build optimizer    
         self.optimizer = GPyOpt.methods.BayesianOptimization(f=self.objective_sampler,
@@ -345,13 +345,13 @@ class EchoStateNetworkCV:
                                                              
                                                              
         # Show model
-        if self.verbose:
-            tqdm.write("Model initialization done.", )
-            tqdm.write(self.optimizer.model.model)
-            tqdm.write(self.optimizer.model.model.kern.lengthscale)
+        # if self.verbose:
+        #     tqdm.write("Model initialization done.", )
+        #     tqdm.write(self.optimizer.model.model)
+        #     tqdm.write(self.optimizer.model.model.kern.lengthscale)
         
-        if self.verbose:
-            tqdm.write("Starting optimization...")
+        # if self.verbose:
+        #     tqdm.write("Starting optimization...")
         
         # Optimize
         self.optimizer.run_optimization(eps=self.eps, max_iter=self.max_iterations, max_time=self.max_time, 
@@ -454,8 +454,8 @@ class EchoStateNetworkCV:
             #model.model.likelihood.variance.set_prior(gamma_prior())
         
         # Explicitly state model
-        if self.verbose:
-            tqdm.write('Using model:' + str(model.__class__.__name__))
+        # if self.verbose:
+        #     tqdm.write('Using model:' + str(model.__class__.__name__))
         
         # Set acquisition
         acquisition_optimizer = GPyOpt.optimization.AcquisitionOptimizer(space, optimizer='lbfgs')
@@ -473,9 +473,6 @@ class EchoStateNetworkCV:
         
         # Set initial design
         n = len(self.parameters)
-        # noise_estiation_parameters = np.random.uniform(-1e-6, 1e-6, size=(30, n)) + 0.5
-        # random_samples = np.random.uniform(size=(self.initial_samples, n))
-        # initial_parameters = np.vstack((noise_estiation_parameters, random_samples))
         initial_parameters = pyDOE.lhs(n, self.initial_samples, 'cm') # Latin hypercube initialization
         
         # Pick evaluator
@@ -497,9 +494,9 @@ class EchoStateNetworkCV:
                                      
         # Show model
         if self.verbose:
-            tqdm.write("Model initialization done.")
-            tqdm.write(self.optimizer.model.model)
-            tqdm.write(self.optimizer.model.model.kern.lengthscale)
+            #tqdm.write("Model initialization done.")
+            tqdm.write(self.optimizer.model.model.__str__)
+            tqdm.write(self.optimizer.model.model.kern.lengthscale.__str__)
         
         # Optimize
         self.optimizer.run_optimization(eps=self.eps, 
@@ -508,9 +505,9 @@ class EchoStateNetworkCV:
                                         verbosity=self.verbose)
         
         # Inform user
-        if self.verbose:        
+        if self.verbose: 
+            self.pbar.close()       
             tqdm.write('Done.')
-            self.pbar.close()
             
         # Purge temporary data references
         del self.x
