@@ -68,7 +68,7 @@ class SimpleCycleReservoir:
         
         # Add intercept
         intercept = np.ones(shape=(rows, 1), dtype=state.dtype)
-        state = np.hstack((intercept, state)))
+        state = np.hstack((intercept, state))
         
         return state[burn_in:]
         
