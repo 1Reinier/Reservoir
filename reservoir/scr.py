@@ -43,10 +43,6 @@ class SimpleCycleReservoir:
         """Generates states given some column vector x"""
         # Initialize new random state
         random_state = np.random.RandomState(self.seed)
-            
-        # Normalize inputs and outputs
-        # y = self.normalize(outputs=y, keep=True)
-        # x = self.normalize(inputs=x, keep=True)
         
         # Calculate correct shape
         rows = x.shape[0]
@@ -71,86 +67,6 @@ class SimpleCycleReservoir:
         state = np.hstack((intercept, state))
         
         return state[burn_in:]
-        
-    def normalize(self, inputs=None, outputs=None, keep=False):
-        """Normalizes array by column (along rows) and stores mean and standard devation.
-        
-        Set `store` to True if you want to retain means and stds for denormalization later.
-        
-        Parameters
-        ----------
-        inputs : array or None
-            Input matrix that is to be normalized
-        outputs : array or None
-            Output column vector that is to be normalized
-        keep : bool
-            Stores the normalization transformation in the object to denormalize later
-        
-        Returns
-        -------
-        transformed : tuple or array
-            Returns tuple of every normalized array. In case only one object is to be returned the tuple will be 
-            unpacked before returning
-        
-        """      
-        # Checks
-        if inputs is None and outputs is None:
-            raise ValueError('Inputs and outputs cannot both be None')
-        
-        # Storage for transformed variables
-        transformed = []
-        
-        if not inputs is None:
-            if keep:
-                # Store for denormalization
-                self._input_means = inputs.mean(axis=0)
-                self._input_stds = inputs.std(ddof=1, axis=0)
-                
-            # Transform
-            transformed.append((inputs - self._input_means) / self._input_stds)
-            
-        if not outputs is None:
-            if keep:
-                # Store for denormalization
-                self._output_means = outputs.mean(axis=0)
-                self._output_stds = outputs.std(ddof=1, axis=0)
-
-            # Transform
-            transformed.append((outputs - self._output_means) / self._output_stds)
-        
-        # Syntactic sugar
-        return tuple(transformed) if len(transformed) > 1 else transformed[0]
-        
-    def denormalize(self, inputs=None, outputs=None):
-        """Denormalizes array by column (along rows) using stored mean and standard deviation.
-        
-        Parameters
-        ----------
-        inputs : array or None
-            Any inputs that need to be transformed back to their original scales
-        outputs : array or None
-            Any output that need to be transformed back to their original scales
-        
-        Returns
-        -------
-        transformed : tuple or array
-            Returns tuple of every denormalized array. In case only one object is to be returned the tuple will be 
-            unpacked before returning
-        
-        """
-        if inputs is None and outputs is None:
-            raise ValueError('Inputs and outputs cannot both be None')
-        
-        # Storage for transformed variables
-        transformed = []
-        
-        if not inputs is None:
-            transformed.append((inputs * self._input_stds) + self._input_means)
-        if not outputs is None:
-            transformed.append((outputs * self._output_stds) + self._output_means)
-        
-        # Syntactic sugar
-        return tuple(transformed) if len(transformed) > 1 else transformed[0]
     
     def train(self, y, x, burn_in=30):
         """Trains the Echo State Network.
@@ -194,23 +110,10 @@ class SimpleCycleReservoir:
             # Pseudo-inverse solution
             self.out_weights = scipy.linalg.pinvh(ridge_x, ridge_y, rcond=1e6*np.finfo('d').eps).reshape(-1, 1)  # Robust solution if ridge_x is singular
         
-        # Return all data for computation or visualization purposes (Note: these are normalized)
+        # Return all data for computation or visualization purposes
         return state, y, burn_in
-        
-    def validate(self, state, folds=5):
-        """Performs k-folds cross-validation on the sate matrix.
-        
-        Parameters
-        ----------
-        state : numpy array
-            State matrix that forms the training data for the problem
-        folds : int
-            Number of folds to do cross validation on
-        
-        """
-        pass
             
-    def test(self, y, x=None, scoring_method='L2', alpha=1., burn_in=30, **kwargs):
+    def test(self, y, x, out_weights=None, scoring_method='L2', burn_in=30, alpha=1., **kwargs):
         """Tests and scores against known output.
         
         Parameters
@@ -229,12 +132,11 @@ class SimpleCycleReservoir:
         Returns
         -------
         error : float
-            Error between prediction and knwon outputs
+            Error between prediction and known outputs
         
         """
         # Run prediction
-        final_t = y.shape[0]
-        y_predicted = self.predict_stepwise(x)
+        y_predicted = self.predict_stepwise(x, out_weights=out_weights)
         
         # Checks
         assert(y_predicted.shape[0] == y.shape[0])
@@ -274,9 +176,6 @@ class SimpleCycleReservoir:
         
         # Predict
         y_predicted = state @ weights
-            
-        # Denormalize predictions
-        # y_predicted = self.denormalize(outputs=y_predicted)
             
         # Return predictions
         return y_predicted
