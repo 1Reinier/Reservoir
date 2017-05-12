@@ -285,7 +285,6 @@ class EchoStateNetworkCV:
         self.optimizer = GPyOpt.methods.BayesianOptimization(f=self.objective_sampler,
                                                              domain=self.scaled_bounds,
                                                              initial_design_numdata=self.initial_samples,
-                                                             constrains=self.constraints, 
                                                              model_type=model_type, 
                                                              acquisition_type=completed_acquisition_type,
                                                              exact_feval=False,
@@ -377,7 +376,7 @@ class EchoStateNetworkCV:
                                                      num_cores=self.n_jobs)
         
         # Set search space and constraints
-        space = GPyOpt.core.task.space.Design_space(self.scaled_bounds, self.constraints)
+        space = GPyOpt.core.task.space.Design_space(self.scaled_bounds, constraints=None)
         
         # Select model and acquisition
         acquisition_type = self.acquisition_type
