@@ -35,8 +35,11 @@ class ClusteringBO(EchoStateNetworkCV):
         self.responsibilities = responsibilities
 
     def objective_sampler(self, parameters):
+        # Get arguments
+        arguments = self.construct_arguments(parameters)
+        
         # Make simple sycle reservoir
-        scr = SimpleCycleReservoir(**parameters)
+        scr = SimpleCycleReservoir(**arguments)
         
         # How many series doe we have
         n_series = self.x.shape[1]
