@@ -52,13 +52,13 @@ class ClusteringBO(EchoStateNetworkCV):
         scores = np.zeros((n_series, k_clusters), dtype=float)
         
         # Generate error for every series
-        for n in n_series:
+        for n in range(n_series):
             # Get series i
             x = self.x[:, n].reshape(-1, 1)
             y = self.y[:, n].reshape(-1, 1)
             
             # Compute score per cluster
-            for k in k_clusters:
+            for k in range(k_clusters):
                 scores[n, k] = scr.test(y, x, out_weights=self.readouts[:, k], scoring_method='L2', burn_in=self.esn_burn_in)
         
         # Compute final scores
