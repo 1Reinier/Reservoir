@@ -1,3 +1,4 @@
+import numpy as np
 from .esn_cv import *
 from .scr import *
 
