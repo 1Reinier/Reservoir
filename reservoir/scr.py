@@ -40,7 +40,7 @@ class SimpleCycleReservoir:
         nx.draw(graph)
         
     def generate_states(self, x, burn_in=30):
-        """Generates states given some input x"""
+        """Generates states given some column vector x"""
         # Initialize new random state
         random_state = np.random.RandomState(self.seed)
             
@@ -170,10 +170,10 @@ class SimpleCycleReservoir:
         
         Returns
         -------
-        complete_data, y, burn_in : tuple
-            Returns the complete dataset (state matrix concatenated with any inputs),
-            the y values provided and the number of time steps used for burn_in. These data can be used
-            for diagnostic purposes  (e.g. vizualization of activations).
+        state, y, burn_in : tuple
+            Returns the state, the y values provided and the number of time steps used for burn_in. 
+            These data can be used for diagnostic purposes (e.g. vizualization of activations), or for
+            cross-validation.
         
         """    
         state = self.generate_states(x, burn_in=burn_in)
@@ -196,8 +196,21 @@ class SimpleCycleReservoir:
         
         # Return all data for computation or visualization purposes (Note: these are normalized)
         return state, y, burn_in
+        
+    def validate(self, state, folds=5):
+        """Performs k-folds cross-validation on the sate matrix.
+        
+        Parameters
+        ----------
+        state : numpy array
+            State matrix that forms the training data for the problem
+        folds : int
+            Number of folds to do cross validation on
+        
+        """
+        pass
             
-    def test(self, y, x=None, scoring_method='mse', alpha=1., burn_in=30, **kwargs):
+    def test(self, y, x=None, scoring_method='L2', alpha=1., burn_in=30, **kwargs):
         """Tests and scores against known output.
         
         Parameters
@@ -206,7 +219,7 @@ class SimpleCycleReservoir:
             Column vector of known outputs
         x : array or None
             Any inputs if required
-        scoring_method : {'mse', 'rmse', 'nrmse', 'tanh'}
+        scoring_method : {'L2', 'mse', 'rmse', 'nrmse', 'tanh'}
             Evaluation metric used to calculate error
         burn_in : int
             Number of time steps to exclude from prediction initially
@@ -268,7 +281,7 @@ class SimpleCycleReservoir:
         # Return predictions
         return y_predicted
         
-    def error(self, predicted, target, method='mse', alpha=1.):
+    def error(self, predicted, target, method='L2', alpha=1.):
         """Evaluates the error between predictions and target values.
         
         Parameters
@@ -277,7 +290,7 @@ class SimpleCycleReservoir:
             Predicted value
         target : array
             Target values
-        method : {'mse', 'tanh', 'rmse', 'nmse', 'nrmse', 'tanh-nmse', 'log-tanh', 'log'}
+        method : {'L2', 'mse', 'tanh', 'rmse', 'nmse', 'nrmse', 'tanh-nmse', 'log-tanh', 'log'}
             Evaluation metric. 'tanh' takes the hyperbolic tangent of mse to bound its domain to [0, 1] to ensure 
             continuity for unstable models. 'log' takes the logged mse, and 'log-tanh' takes the log of the squeezed
             normalized mse. The log ensures that any variance in the GP stays within bounds as errors go toward 0.
@@ -294,7 +307,7 @@ class SimpleCycleReservoir:
             The error as evaluated with the metric chosen above
         
         """      
-        errors = predicted.ravel() - target.ravel()
+        errors = target.ravel() - predicted.ravel()
         
         # Adjust for NaN and np.inf in predictions (unstable solution)
         if not np.all(np.isfinite(predicted)):
@@ -302,25 +315,21 @@ class SimpleCycleReservoir:
             errors = np.inf
         
         # Compute mean error
-        if method == 'mse':
+        if method == 'L2':
+            error = np.linalg.norm(errors, ord=2)  # Technically the same as rmse
+        elif method == 'mse':
             error = np.mean(np.square(errors))
         elif method == 'tanh':
-            error = alpha * np.tanh(np.mean(np.square(errors)) / alpha)  # To 'squeeze' errors onto the interval (0, 1)
+            error = alpha * np.tanh(np.mean(np.square(errors)) / alpha)  # To 'squeeze' mse onto the interval (0, 1)
         elif method == 'rmse':
             error = np.sqrt(np.mean(np.square(errors)))
         elif method == 'nmse':
             error = np.mean(np.square(errors)) / np.square(target.ravel().std(ddof=1))
         elif method == 'nrmse':
             error = np.sqrt(np.mean(np.square(errors))) / target.ravel().std(ddof=1)
-        elif method == 'tanh-nrmse':
-            nrmse = np.sqrt(np.mean(np.square(errors))) / target.ravel().std(ddof=1)
+        elif method == 'tanh-nmse':
+            nmse = np.sqrt(np.mean(np.square(errors))) / target.ravel().std(ddof=1)
             error = alpha * np.tanh(nrmse / alpha)
-        elif method == 'log':
-            mse = np.mean(np.square(errors))
-            error = np.log(mse)
-        elif method == 'log-tanh':
-            nrmse = np.sqrt(np.mean(np.square(errors))) / target.ravel().std(ddof=1)
-            error = np.log(alpha * np.tanh((1. / alpha) * nrmse))
         else:
             raise ValueError('Scoring method not recognized')
         return error

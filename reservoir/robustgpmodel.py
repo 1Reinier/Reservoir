@@ -30,9 +30,10 @@ class RobustGPModel(GPyOpt.models.GPModel):
     """
     analytical_gradient_prediction = True 
     
-    def __init__(self, noise_var=None, exact_feval=False, normalize_Y=True, max_iters=1000, verbose=True, **kwargs):
+    def __init__(self, noise_var=None, log_space=False, exact_feval=False, normalize_Y=True, max_iters=1000, verbose=True, **kwargs):
         super().__init__()
         self.noise_var = noise_var
+        self.log_space = log_space
         self.exact_feval = exact_feval
         self.normalize_Y = normalize_Y
         self.max_iters = max_iters
@@ -52,11 +53,15 @@ class RobustGPModel(GPyOpt.models.GPModel):
         elif infinite_indices.shape[0] > 0:
             Y = Y[finite_mask]
             X = X[finite_mask]
+            
+        # Log if wanted
+        if self.log_space:
+            Y = np.log(Y)
         
         # Normalize
         if self.normalize_Y:
             Y -= Y.mean()
-            Y /= Y.std(ddof=1)
+            Y /= Y.std()
         
         return X, Y
     

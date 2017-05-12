@@ -8,7 +8,6 @@ import GPyOpt
 import copy
 import json
 import pyDOE
-from tqdm import tqdm
 from collections import OrderedDict
 
 
@@ -45,11 +44,10 @@ class EchoStateNetworkCV:
         Batch size of samples used by GPyOpt
     cv_samples : int
         Number of samples of the objective function to evaluate for a given parametrization of the ESN
-    mcmc_samples : int or None
-        If any number of samples is specified, GPyOpt will use MCMC to draw samples for optimization
-        of the Gaussian Process. This may make ESN optimization more accurate but can also slow it down.
     scoring_method : {'mse', 'rmse', 'tanh', 'nmse', 'nrmse', 'log', 'log-tanh', 'tanh-nrmse'}
         Evaluation metric that is used to guide optimization
+    log_space : bool
+        Optimize in log space or not (take the logarithm of the objective or not before modeling it in the GP)
     tanh_alpha : float
         Alpha coefficient used to scale the tanh error function: alpha * tanh{(1 / alpha) * mse}
     esn_burn_in : int
@@ -61,15 +59,15 @@ class EchoStateNetworkCV:
     n_jobs : int
         Maximum number of concurrent jobs
     esn_feedback : bool or None
-        Build ESNs with feedback ('teacher forcing') or not
+        Build ESNs with feedback ('teacher forcing') if available
     verbose : bool
         Verbosity on or off
     
     """
     
-    def __init__(self, bounds, subsequence_length, model=EchoStateNetwork, eps=1e-8, initial_samples=8, 
+    def __init__(self, bounds, subsequence_length, model=EchoStateNetwork, eps=1e-8, initial_samples=50, 
                  validate_fraction=0.2, steps_ahead=1, max_iterations=1000, batch_size=1, cv_samples=1, 
-                 mcmc_samples=None, scoring_method='nmse', tanh_alpha=1., esn_burn_in=100, acquisition_type='LCB',
+                 scoring_method='nmse', log_space=True, tanh_alpha=1., esn_burn_in=100, acquisition_type='LCB',
                  max_time=np.inf, n_jobs=1, random_seed=123, esn_feedback=None, verbose=True):
         # Bookkeeping
         self.bounds = OrderedDict(bounds)  # Fix order
@@ -86,8 +84,8 @@ class EchoStateNetworkCV:
         self.max_iterations = max_iterations
         self.batch_size = batch_size
         self.cv_samples = cv_samples
-        self.mcmc_samples = mcmc_samples
         self.scoring_method = scoring_method
+        self.log_space = log_space
         self.alpha = tanh_alpha
         self.esn_burn_in = esn_burn_in
         self.acquisition_type = acquisition_type
@@ -98,53 +96,7 @@ class EchoStateNetworkCV:
         self.verbose = verbose
         
         # Normalize bounds domains and remember transformation
-        self.scaled_bounds, self.bound_scalings, self.bound_intercepts = self.normalize_bounds(self.bounds)
-        
-        # Build constraints based on bounds
-        self.constraints = None  # self.build_constraints(self.bounds)
-            
-    def build_constraints(self, bounds):
-        """Builds GPy style constraints for the optimization"""
-        constraints = []
-        
-        # Set contraint (spectral radius - leaking rate ≤ 0)
-        if 'leaking_rate' in bounds and 'spectral_radius' in bounds:
-            spectral_index = self.indices['spectral_radius']
-            leaking_index = self.indices['leaking_rate']
-            
-            # Adjust for domain scaling
-            spectral_scale = self.bound_scalings[spectral_index]
-            leaking_scale = self.bound_scalings[leaking_index]
-            
-            # Adjust for intercepts
-            spectral_intercept = self.bound_intercepts[spectral_index]
-            leaking_intercept = self.bound_intercepts[leaking_index]
-            
-            # Add constraint in GPy format
-            constraints += [{'name': 'Spectral ≤ leaking', 'constrain': '{} * x[:, {}] + {} - ({} * x[:, {}] + {})'.format(
-                spectral_scale, spectral_index, spectral_intercept, leaking_scale, leaking_index, leaking_intercept
-            )}]
-        
-        # Set contraint (expected connections in reservoir larger than 1)
-        if 'n_nodes' in bounds and 'connectivity' in bounds:
-            nodes_index = self.indices['n_nodes']
-            connect_index = self.indices['connectivity']
-            
-            # Adjust for domain scaling
-            nodes_scale = self.bound_scalings[nodes_index]
-            connect_scale = self.bound_scalings[connect_index]
-            
-            # Adjust for intercepts
-            nodes_intercept = self.bound_intercepts[nodes_index]
-            connect_intercept = self.bound_intercepts[connect_index]
-            
-            # Add constraint in GPy format
-            constraints += [{'name': '-Expected connections ≤ -1', 'constrain': '-({} * x[:, {}] + {}) * ({} * x[:, {}] + {})'.format(
-                nodes_scale, nodes_index, nodes_intercept, connect_scale, connect_index, connect_intercept
-            )}]
-            
-        return constraints if len(constraints) > 0 else None
-                                   
+        self.scaled_bounds, self.bound_scalings, self.bound_intercepts = self.normalize_bounds(self.bounds)                              
     
     def normalize_bounds(self, bounds):
         """Makes sure all bounds feeded into GPyOpt are scaled to the domain [0, 1], 
@@ -256,7 +208,7 @@ class EchoStateNetworkCV:
             raise ValueError("y-array is not 2 dimensional")
         
         if verbose and y.shape[0] < y.shape[1]:
-            tqdm.write("Warning: y-array has more series (columns) than samples (rows). Check if this is correct")
+            print("Warning: y-array has more series (columns) than samples (rows). Check if this is correct")
         
         # Checks for x
         if not x is None:
@@ -269,8 +221,10 @@ class EchoStateNetworkCV:
             if x.shape[0] != y.shape[0]:
                 raise ValueError("y-array and x-array have different number of samples (rows)")    
     
-    def optimize(self, y, x=None, store_path=None):
-        """Performs optimization (with cross-validation).
+    def optimize_mcmc(self, y, x=None, mcmc_samples=None, tore_path=None):
+        """Deprecated optimization code. Can use MCMC if needed.
+        
+        Performs optimization (with cross-validation).
         
         Uses Bayesian Optimization with Gaussian Process priors to optimize ESN hyperparameters.
         
@@ -309,7 +263,7 @@ class EchoStateNetworkCV:
 
         keyword_arguments = {'kernel': kernel}
         
-        if self.mcmc_samples is None:
+        if mcmc_samples is None:
             # MLE solution
             model_type = 'GP'
             completed_acquisition_type = self.acquisition_type
@@ -317,15 +271,15 @@ class EchoStateNetworkCV:
             # MCMC solution
             model_type = 'GP_MCMC'
             completed_acquisition_type = self.acquisition_type + '_MCMC'
-            keyword_arguments['n_samples'] = self.mcmc_samples
+            keyword_arguments['n_samples'] = mcmc_samples
             
         if self.batch_size > 1:
             # Add more exploration if batch size is larger than 1
             #keyword_arguments['evaluator_type'] = 'local_penalization'  # BUG: convergence is not consistent
             pass
         
-        # if self.verbose:
-        #     tqdm.write("Model initialization and exploration run...")
+        if self.verbose:
+            print("Model initialization and exploration run...")
         
         # Build optimizer    
         self.optimizer = GPyOpt.methods.BayesianOptimization(f=self.objective_sampler,
@@ -345,13 +299,13 @@ class EchoStateNetworkCV:
                                                              
                                                              
         # Show model
-        # if self.verbose:
-        #     tqdm.write("Model initialization done.", )
-        #     tqdm.write(self.optimizer.model.model)
-        #     tqdm.write(self.optimizer.model.model.kern.lengthscale)
+        if self.verbose:
+            print("Model initialization done.", )
+            print(self.optimizer.model.model)
+            print(self.optimizer.model.model.kern.lengthscale)
         
-        # if self.verbose:
-        #     tqdm.write("Starting optimization...")
+        if self.verbose:
+            print("Starting optimization...")
         
         # Optimize
         self.optimizer.run_optimization(eps=self.eps, max_iter=self.max_iterations, max_time=self.max_time, 
@@ -359,7 +313,7 @@ class EchoStateNetworkCV:
         
         # Inform user
         if self.verbose:        
-            tqdm.write('Done.')
+            print('Done.')
             
         # Purge temporary data references
         del self.x
@@ -379,7 +333,7 @@ class EchoStateNetworkCV:
         # Return best parameters
         return best_arguments
         
-    def optimize_modular(self, y, x=None, store_path=None):
+    def optimize(self, y, x=None, store_path=None):
         """Performs optimization (with cross-validation).
         
         Uses Bayesian Optimization with Gaussian Process priors to optimize ESN hyperparameters.
@@ -387,7 +341,7 @@ class EchoStateNetworkCV:
         Parameters
         ----------
         y : numpy array
-            Array with target values (y-values)
+            Column vector with target values (y-values)
         
         x : numpy array or None
             Optional array with input values (x-values)
@@ -413,7 +367,7 @@ class EchoStateNetworkCV:
         
         # Inform user    
         if self.verbose:
-            tqdm.write("Model initialization and exploration run...")
+            print("Model initialization and exploration run...")
         
         
         # Define objective
@@ -426,36 +380,9 @@ class EchoStateNetworkCV:
         space = GPyOpt.core.task.space.Design_space(self.scaled_bounds, self.constraints)
         
         # Select model and acquisition
-        if self.mcmc_samples is None:
-            acquisition_type = self.acquisition_type
-            model = RobustGPModel(normalize_Y=True)
-        else:
-            acquisition_type = self.acquisition_type + '_MCMC'
-            # Set GP kernel
-            kernel = GPy.kern.Matern52(input_dim=len(self.parameters), ARD=True)
-            
-            # Proper distribution close to Jeffrey's prior
-            gamma_prior = lambda: GPy.priors.Gamma(.001, .001)  
-            kernel.variance.set_prior(gamma_prior())
-            kernel.lengthscale.set_prior(gamma_prior())
-            
-            # MCMC Model
-            model = GPyOpt.models.gpmodel.GPModel_MCMC(kernel=kernel,  
-                                                       noise_var=None, 
-                                                       exact_feval=False, 
-                                                       normalize_Y=True, 
-                                                       n_samples=self.mcmc_samples, 
-                                                       n_burnin=100, 
-                                                       subsample_interval=2, 
-                                                       step_size=0.2, 
-                                                       leapfrog_steps=5, 
-                                                       verbose=self.verbose)
-            # Set prior on Gaussian Noise # BUG
-            #model.model.likelihood.variance.set_prior(gamma_prior())
-        
-        # Explicitly state model
-        # if self.verbose:
-        #     tqdm.write('Using model:' + str(model.__class__.__name__))
+        acquisition_type = self.acquisition_type
+        model = RobustGPModel(normalize_Y=True, log_space=self.log_space)
+
         
         # Set acquisition
         acquisition_optimizer = GPyOpt.optimization.AcquisitionOptimizer(space, optimizer='lbfgs')
@@ -463,40 +390,39 @@ class EchoStateNetworkCV:
         acquisition = SelectedAcquisition(model=model, space=space, optimizer=acquisition_optimizer)
         
         # Add Local Penalization
-        lp_acquisition = GPyOpt.acquisitions.LP.AcquisitionLP(model, space, acquisition_optimizer, acquisition, transform='none')
+        #lp_acquisition = GPyOpt.acquisitions.LP.AcquisitionLP(model, space, acquisition_optimizer, acquisition, transform='none')
         
-        # Set jitter to low number if used
-        # try:
-        #     acquisition.jitter = 1e-6
-        # except AttributeError:
-        #     pass
+        # Set acquisition jitter to low number if used
+        try:
+            acquisition.jitter = 1e-8
+        except AttributeError:
+            pass
         
         # Set initial design
         n = len(self.parameters)
         initial_parameters = pyDOE.lhs(n, self.initial_samples, 'cm') # Latin hypercube initialization
         
         # Pick evaluator
-        evaluator = GPyOpt.core.evaluators.batch_local_penalization.LocalPenalization(acquisition=lp_acquisition, 
-                                                                                      batch_size=self.batch_size, 
-                                                                                      normalize_Y=True)
+        evaluator = GPyOpt.core.evaluators.sequential.Sequential(acquisition=acquisition, 
+                                                                 batch_size=self.batch_size, 
+                                                                 normalize_Y=True)
         # Show progress bar
         if self.verbose:
-            tqdm.write("Starting optimization...")
-            self.pbar = tqdm(total=self.max_iterations, unit=' objective evalutions')
+            print("Starting optimization...", '\n')
         
         # Build optimizer
         update_interval = 1 if self.mcmc_samples is None else 20
         self.optimizer = GPyOpt.methods.ModularBayesianOptimization(model=model, space=space, objective=objective, 
-                                                                    acquisition=lp_acquisition, evaluator=evaluator,  # N.B. LP acquisition!
+                                                                    acquisition=acquisition, evaluator=evaluator,  # N.B. LP acquisition!
                                                                     X_init=initial_parameters, normalize_Y=True, 
                                                                     model_update_interval=update_interval)
         self.optimizer.modular_optimization = True
                                      
         # Show model
         if self.verbose:
-            #tqdm.write("Model initialization done.")
-            tqdm.write(self.optimizer.model.model.__str__)
-            tqdm.write(self.optimizer.model.model.kern.lengthscale.__str__)
+            print("Model initialization done.", '\n')
+            print(self.optimizer.model.model, '\n')
+            print(self.optimizer.model.model.kern.lengthscale, '\n')
         
         # Optimize
         self.optimizer.run_optimization(eps=self.eps, 
@@ -506,8 +432,7 @@ class EchoStateNetworkCV:
         
         # Inform user
         if self.verbose: 
-            self.pbar.close()       
-            tqdm.write('Done.')
+            print('Done.')
             
         # Purge temporary data references
         del self.x
@@ -630,9 +555,8 @@ class EchoStateNetworkCV:
         
         # Inform user
         if self.verbose:
-            self.pbar.update(1)
-            pars = self.construct_arguments(parameters)
-            self.pbar.set_postfix(**{'\nCurrent score:': mean_score, '\n': ''}, **pars)
+            print('Score:', mean_score)
+            # pars = self.construct_arguments(parameters)
             
         # Return scores
         return mean_score.reshape(-1, 1)
