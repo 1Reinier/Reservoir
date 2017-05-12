@@ -409,11 +409,10 @@ class EchoStateNetworkCV:
             print("Starting optimization...", '\n')
         
         # Build optimizer
-        update_interval = 1 if self.mcmc_samples is None else 20
         self.optimizer = GPyOpt.methods.ModularBayesianOptimization(model=model, space=space, objective=objective, 
-                                                                    acquisition=acquisition, evaluator=evaluator,  # N.B. LP acquisition!
+                                                                    acquisition=acquisition, evaluator=evaluator,
                                                                     X_init=initial_parameters, normalize_Y=True, 
-                                                                    model_update_interval=update_interval)
+                                                                    model_update_interval=1)
         self.optimizer.modular_optimization = True
                                      
         # Show model
