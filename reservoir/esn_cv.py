@@ -403,8 +403,7 @@ class EchoStateNetworkCV:
         
         # Pick evaluator
         evaluator = GPyOpt.core.evaluators.sequential.Sequential(acquisition=acquisition, 
-                                                                 batch_size=self.batch_size, 
-                                                                 normalize_Y=True)
+                                                                 batch_size=self.batch_size)
         # Show progress bar
         if self.verbose:
             print("Starting optimization...", '\n')
