@@ -240,7 +240,7 @@ class EchoStateNetworkCV:
             if x.shape[0] != y.shape[0]:
                 raise ValueError("y-array and x-array have different number of samples (rows)")    
     
-    def optimize_mcmc(self, y, x=None, mcmc_samples=None, tore_path=None):
+    def optimize_mcmc(self, y, x=None, mcmc_samples=None, store_path=None):
         """Deprecated optimization code. Can use MCMC if needed.
         
         Performs optimization (with cross-validation).
