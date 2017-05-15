@@ -286,7 +286,7 @@ class SimpleCycleReservoir:
             error = np.sqrt(np.mean(np.square(errors))) / target.ravel().std(ddof=1)
         elif method == 'tanh-nmse':
             nmse = np.sqrt(np.mean(np.square(errors))) / target.ravel().std(ddof=1)
-            error = alpha * np.tanh(nrmse / alpha)
+            error = alpha * np.tanh(nmse / alpha)
         else:
             raise ValueError('Scoring method not recognized')
         return error
