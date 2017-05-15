@@ -171,7 +171,7 @@ class SimpleCycleReservoir:
             
             
             
-    def test(self, y, x, out_weights=None, scoring_method='L2', burn_in=30, alpha=1.):
+    def test(self, y, x, out_weights=None, scoring_method='L2', burn_in=30, alpha=1., **kwargs):
         """Tests and scores against known output.
         
         Parameters

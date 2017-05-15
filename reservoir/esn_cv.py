@@ -24,9 +24,8 @@ class EchoStateNetworkCV:
     ----------
     bounds : dict
         A dictionary specifying the bounds for optimization. The key is the parameter name and the value 
-        is a tuple with minimum value and maximum value of that parameter. E.g. {'n_nodes': (100, 200),
-        regularization: -8}  # Log-space 10^-8
-    model : {EchoStateNetwork, SimpleCycleReservoir}
+        is a tuple with minimum value and maximum value of that parameter. E.g. {'n_nodes': (100, 200), ...}
+    model : class: {EchoStateNetwork, SimpleCycleReservoir}
             Model class to optimize
     subsequence_length : int
         Number of samples in one cross-validation sample
@@ -57,6 +56,8 @@ class EchoStateNetworkCV:
         The type of acquisition function to use in Bayesian Optimization
     max_time : float
         Maximum number of seconds before quitting optimization
+    n_jobs : int
+        Maximum number of concurrent jobs
     esn_feedback : bool or None
         Build ESNs with feedback ('teacher forcing') if available
     verbose : bool
@@ -67,7 +68,7 @@ class EchoStateNetworkCV:
     def __init__(self, bounds, subsequence_length, model=EchoStateNetwork, eps=1e-8, initial_samples=50, 
                  validate_fraction=0.2, steps_ahead=1, max_iterations=1000, batch_size=1, cv_samples=1, 
                  scoring_method='nmse', log_space=True, tanh_alpha=1., esn_burn_in=100, acquisition_type='LCB',
-                 max_time=np.inf, random_seed=123, esn_feedback=None, verbose=True):
+                 max_time=np.inf, n_jobs=1, random_seed=123, esn_feedback=None, verbose=True):
         # Bookkeeping
         self.bounds = OrderedDict(bounds)  # Fix order
         self.parameters = list(self.bounds.keys())
@@ -90,6 +91,7 @@ class EchoStateNetworkCV:
         self.esn_burn_in = esn_burn_in
         self.acquisition_type = acquisition_type
         self.max_time = max_time
+        self.n_jobs = n_jobs
         self.seed = random_seed
         self.feedback = esn_feedback
         self.verbose = verbose
@@ -309,7 +311,7 @@ class EchoStateNetworkCV:
                                                              cost_withGradients=None,
                                                              acquisition_optimizer_type='lbfgs',
                                                              verbosity=self.verbose,
-                                                             num_cores=1, 
+                                                             num_cores=self.n_jobs, 
                                                              batch_size=self.batch_size,
                                                              **keyword_arguments) 
                                                              
@@ -390,7 +392,7 @@ class EchoStateNetworkCV:
         objective = GPyOpt.core.task.SingleObjective(self.objective_sampler, 
                                                      objective_name='ESN Objective',
                                                      batch_type='synchronous',
-                                                     num_cores=self.batch_size)
+                                                     num_cores=self.n_jobs)
         
         # Set search space and constraints
         space = GPyOpt.core.task.space.Design_space(self.scaled_bounds, constraints=None)
