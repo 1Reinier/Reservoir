@@ -117,7 +117,7 @@ class ClusteringBO(EchoStateNetworkCV):
             
             for k in range(self.cv_samples):
                 # Get y_n
-                y = y_all[:, n]
+                y = y_all[:, n].reshape(-1, 1)
                 
                 # Validation folds
                 start_index = k * fold_size
