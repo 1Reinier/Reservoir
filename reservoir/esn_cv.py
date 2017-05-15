@@ -73,6 +73,8 @@ class EchoStateNetworkCV:
         self.bounds = OrderedDict(bounds)  # Fix order
         self.parameters = list(self.bounds.keys())
         self.indices = dict(zip(self.parameters, range(len(self.parameters))))  # Parameter indices
+        self.free_parameters = []
+        self.fixed_parameters = []
         
         # Store settings
         self.model = model
@@ -120,18 +122,31 @@ class EchoStateNetworkCV:
         scalings = []
         intercepts = []
         for name, domain in self.bounds.items():
-            # Get scaling
-            lower_bound = min(domain)
-            upper_bound = max(domain)
-            scale = upper_bound - lower_bound
             
-            # Transform to [0, 1] domain
-            scaled_bound = {'name': name, 'type': 'continuous', 'domain': (0., 1.)}
+            # Get any fixed parmeters
+            if type(domain) == int:
+                # Take note
+                self.fixed_parameters.append(name)
             
-            # Store
-            scaled_bounds.append(scaled_bound)
-            scalings.append(scale)
-            intercepts.append(lower_bound)
+            elif type(domain) == tuple:
+                # Bookkeeping
+                self.free_parameters.append(name)
+                
+                # Get scaling
+                lower_bound = min(domain)
+                upper_bound = max(domain)
+                scale = upper_bound - lower_bound
+                
+                # Transform to [0, 1] domain
+                scaled_bound = {'name': name, 'type': 'continuous', 'domain': (0., 1.)}
+                
+                # Store
+                scaled_bounds.append(scaled_bound)
+                scalings.append(scale)
+                intercepts.append(lower_bound)
+            else:
+                raise ValueError("Domain bounds not understood")
+                
         return scaled_bounds, np.array(scalings), np.array(intercepts)
     
     def denormalize_bounds(self, normalized_arguments):
@@ -168,17 +183,22 @@ class EchoStateNetworkCV:
             Arguments that can be fed into an ESN
             
         """
-        # Denormalize        
+        # Denormalize free parameters       
         denormalized_values = self.denormalize_bounds(x)        
-        arguments = dict(zip(self.parameters, denormalized_values))
+        arguments = dict(zip(self.free_parameters, denormalized_values))
         
-        # Specific edits
+        # Add fixed parameters
+        for name in self.fixed_parameters:
+            value = self.bounds[name]
+            arguments[name] = value
+        
+        # Specific additions
         arguments['random_seed'] = self.seed
         if 'regularization' in arguments:
-            arguments['regularization'] = 10. ** arguments['regularization']  # Log scale   
+            arguments['regularization'] = 10. ** arguments['regularization']  # Log scale correction   
         
         if 'n_nodes' in arguments:
-            arguments['n_nodes'] = int(np.round(arguments['n_nodes']))
+            arguments['n_nodes'] = int(np.round(arguments['n_nodes']))  # Discretize
         
         if not self.feedback is None:
             arguments['feedback'] = self.feedback

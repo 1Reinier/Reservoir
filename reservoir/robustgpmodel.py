@@ -56,12 +56,13 @@ class RobustGPModel(GPyOpt.models.GPModel):
             
         # Log if wanted
         if self.log_space:
-            Y = np.log(Y + 1e-12)
+            Y = np.log(Y)
         
         # Normalize
         if self.normalize_Y:
             Y -= Y.mean()
-            Y /= Y.std(ddof=1)
+            std = Y.std()
+            Y /= std if std > 0. else 1.
         
         return X, Y
     
