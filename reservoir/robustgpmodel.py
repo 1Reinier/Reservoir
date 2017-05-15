@@ -40,7 +40,7 @@ class RobustGPModel(GPyOpt.models.GPModel):
         self.verbose = verbose
         self.model = None
 
-    def _preprocess_data(self, X, Y, infinity_penalty_std=1.):
+    def _preprocess_data(self, X, Y):
         # Remove non-finite values
         finite_mask = np.isfinite(Y.ravel()) ##TODO Detect outliers that are not infinite
         infinite_indices = np.nonzero(~finite_mask)[0]
@@ -49,7 +49,7 @@ class RobustGPModel(GPyOpt.models.GPModel):
         if not self.model is None and infinite_indices.shape[0] > 0:
             X_inf = X[infinite_indices]
             means, stds = self.model.predict(X_inf)
-            Y[infinite_indices] = means + infinity_penalty_std * stds
+            Y[infinite_indices] = means + 1e-8 * stds
         elif infinite_indices.shape[0] > 0:
             Y = Y[finite_mask]
             X = X[finite_mask]
@@ -78,7 +78,7 @@ class RobustGPModel(GPyOpt.models.GPModel):
         kernel.variance.set_prior(prior)
         
         # Model
-        noise_var = 1.  #np.square(Y[:30].std(ddof=1)) if self.noise_var is None else self.noise_var
+        noise_var = 1. if self.noise_var is None else self.noise_var
         self.model = GPy.models.GPRegression(X, Y, kernel=kernel, noise_var=noise_var)
         self.model.likelihood.variance.set_prior(prior)
         
@@ -92,7 +92,7 @@ class RobustGPModel(GPyOpt.models.GPModel):
             """
             Updates the model with new observations.
             """
-            X, Y = self._preprocess_data(X_all, Y_all)
+            #X, Y = self._preprocess_data(X_all, Y_all)
             
             if self.model is None: 
                 self._create_model(X, Y)

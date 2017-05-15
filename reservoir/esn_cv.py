@@ -319,9 +319,9 @@ class EchoStateNetworkCV:
                                                              
         # Show model
         if self.verbose:
-            print("Model initialization done.", )
-            print(self.optimizer.model.model)
-            print(self.optimizer.model.model.kern.lengthscale)
+            print("Model initialization done. \n")
+            print(self.optimizer.model.model, '\n')
+            print(self.optimizer.model.model.kern.lengthscale, '\n')
         
         if self.verbose:
             print("Starting optimization...")
