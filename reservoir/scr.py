@@ -163,6 +163,7 @@ class SimpleCycleReservoir:
             # Score
             scores[k] = self.error(prediction, validation_y, scoring_method=scoring_method, burn_in=burn_in)
         
+        # Return mean validation score
         return scores.mean()
             
             
