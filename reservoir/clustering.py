@@ -110,12 +110,12 @@ class ClusteringBO(EchoStateNetworkCV):
         # Score placeholder
         scores = np.zeros((self.cv_samples, n_series))
         
-        for n in n_series:
+        for n in range(n_series):
             
             # Get state for series n
             state = esn.generate_states(self, self.x[:, n], burn_in=self.esn_burn_in)
             
-            for k in self.cv_samples:
+            for k in range(self.cv_samples):
                 # Get y_n
                 y = y_all[:, n]
                 
