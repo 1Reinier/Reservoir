@@ -116,7 +116,7 @@ class SimpleCycleReservoir:
     def validation_score(self, y, x, folds=5, scoring_method='L2', burn_in=30):
         """Trains and gives k-folds validation score"""
         # Get states
-        state = self.generate_states(x, burn_in=self.esn_burn_in)
+        state = self.generate_states(x, burn_in=burn_in)
         
         # Placeholder
         scores = np.zeros(folds)
