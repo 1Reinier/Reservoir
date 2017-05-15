@@ -65,7 +65,8 @@ class ClusteringBO(EchoStateNetworkCV):
             
             # Compute score per cluster
             for k in range(k_clusters):
-                scores[n, k] = scr.test(y, x, out_weights=self.readouts[:, k], scoring_method='L2', burn_in=self.esn_burn_in)
+                readout = self.readouts[:, k].reshape(-1, 1)
+                scores[n, k] = scr.test(y, x, out_weights=readout, scoring_method=self.scoring_method, burn_in=self.esn_burn_in)
         
         # Compute final scores
         final_score = np.sum(self.responsibilities * scores)
