@@ -95,7 +95,7 @@ class SimpleCycleReservoir:
         state = self.generate_states(x, burn_in=burn_in)
         
         # Concatenate inputs with node states
-        train_x = state  # Add intercept
+        train_x = state
         train_y = y[burn_in:]  # Include everything after burn_in
         
         # Ridge regression

@@ -21,7 +21,7 @@ class ClusteringBO(EchoStateNetworkCV):
     
     """
     
-    def __init__(self, bounds, responsibilities, readouts=None, eps=1e-3, initial_samples=100, max_iterations=300, log_space=True,
+    def __init__(self, bounds, responsibilities, readouts=None, eps=1e-6, initial_samples=100, max_iterations=300, log_space=True,
                  burn_in=30, seed=123, verbose=True, **kwargs):
         
         # Initialize optimizer
@@ -33,8 +33,14 @@ class ClusteringBO(EchoStateNetworkCV):
         # Save out weights for later
         self.readouts = readouts
         self.responsibilities = responsibilities
+        
+        # Set objective accordingly
+        if self.readouts is None:
+            self.objective_sampler = k_folds_objective
+        else:
+            self.objective_sampler = clustering_objective
 
-    def objective_sampler(self, parameters):
+    def clustering_objective(self, parameters):
         # Get arguments
         arguments = self.construct_arguments(parameters)
         
@@ -59,22 +65,7 @@ class ClusteringBO(EchoStateNetworkCV):
             
             # Compute score per cluster
             for k in range(k_clusters):
-                if self.readouts is None:
-                    # Validation set
-                    cutoff = int((1 - self.validate_fraction) * x.shape[0])
-                    if cutoff >= self.esn_burn_in:
-                        raise ValueError("Validation set shorter than ESN burn in")
-                    
-                    # Train model
-                    scr.train(y[:cutoff], x[:cutoff], burn_in=self.esn_burn_in)
-                    
-                    # Validation score
-                    scores[n, k] = scr.test(y[cutoff:], x[cutoff:], scoring_method='L2', burn_in=self.esn_burn_in)
-                else:
-                    scores[n, k] = scr.test(y, x, out_weights=self.readouts[:, k], scoring_method='L2', burn_in=self.esn_burn_in)
-        
-        # Checks
-        assert(np.all(np.isfinite(scores)))
+                scores[n, k] = scr.test(y, x, out_weights=self.readouts[:, k], scoring_method='L2', burn_in=self.esn_burn_in)
         
         # Compute final scores
         final_score = np.sum(self.responsibilities * scores)
@@ -83,4 +74,94 @@ class ClusteringBO(EchoStateNetworkCV):
         if self.verbose:
             print('Score:', final_score)
             
-        return final_score
+        return final_score.reshape(-1, 1)
+        
+    def k_folds_objective(self, parameters):
+        """Does k-folds on the states for a set of parameters
+        
+        This method also deals with dispatching multiple series to the objective function if there are multiple,
+        and aggregates the returned scores by averaging.
+        
+        Parameters
+        ----------
+        parameters : array
+            Parametrization of the Echo State Network
+        
+        Returns
+        -------
+        mean_score : 2-D array
+            Column vector with mean score(s), as required by GPyOpt
+        
+        """
+        # Get arguments
+        arguments = self.construct_arguments(parameters)
+
+        # Build network
+        esn = self.model(**arguments)
+        
+        # Get all series
+        y_all = self.y[esn_burn_in:]
+        
+        # Syntactic sugar
+        n_samples = state.shape[0]
+        n_series = self.y.shape[1]
+        fold_size = n_samples // cv_samples
+        
+        # Score placeholder
+        scores = np.zeros((cv_samples, n_series))
+        
+        for n in n_series:
+            
+            # Get state for series n
+            state = esn.generate_states(self, self.x[:, n], burn_in=self.esn_burn_in)
+            
+            for k in cv_samples:
+                # Get y_n
+                y = y_all[:, n]
+                
+                # Validation folds
+                start_index = k * fold_size
+                stop_index = start_index + fold_size
+                
+                # Indices
+                validation_indices = np.arange(start_index, stop_index)
+                
+                # Train mask
+                train_mask = np.ones(n_samples, dtype=bool)
+                train_mask[validation_indices] = False
+                
+                # Concatenate inputs with node states
+                train_x = state[train_mask]
+                train_y = y[train_mask]
+                
+                # Ridge regression
+                ridge_x = train_x.T @ train_x + self.regularization * np.eye(train_x.shape[1])
+                ridge_y = train_x.T @ train_y 
+                
+                # Solve for out weights
+                try:
+                    # Cholesky solution (fast)
+                    out_weights = np.linalg.solve(ridge_x, ridge_y).reshape(-1, 1)
+                except np.linalg.LinAlgError:
+                    # Pseudo-inverse solution
+                    out_weights = scipy.linalg.pinvh(ridge_x, ridge_y, rcond=1e6*np.finfo('d').eps).reshape(-1, 1)  # Robust solution if ridge_x is singular
+                
+                # Validation set
+                validation_x = state[validation_indices]
+                validation_y = y[validation_indices]
+                
+                # Predict
+                prediction = validation_x @ out_weights
+                
+                # Score
+                scores[k, n] = esn.error(prediction, validation_y, scoring_method=self.scoring_method)
+            
+        # Pass back as a column vector (as required by GPyOpt)
+        mean_score = scores.mean()
+        
+        # Inform user
+        if self.verbose:
+            print('Score:', mean_score)
+            
+        # Return scores
+        return mean_score.reshape(-1, 1)
