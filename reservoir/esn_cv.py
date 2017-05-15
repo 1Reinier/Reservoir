@@ -125,7 +125,6 @@ class EchoStateNetworkCV:
             if type(domain) == int or type(domain) == float:
                 # Take note
                 self.fixed_parameters.append(name)
-                continue
                 
             # Free parameters
             elif type(domain) == tuple:
