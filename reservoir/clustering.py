@@ -59,7 +59,7 @@ class ClusteringBO(EchoStateNetworkCV):
             
             # Compute score per cluster
             for k in range(k_clusters):
-                if readouts is None:
+                if self.readouts is None:
                     # Validation set
                     cutoff = int((1 - self.validate_fraction) * x.shape[0])
                     if cutoff >= self.esn_burn_in:
