@@ -124,6 +124,9 @@ class SimpleCycleReservoir:
         # Get y
         y = y[burn_in:]
         
+        # Fold size
+        fold_size = y.shape[0] // folds
+        
         for k in range(folds):
             
             # Validation folds
