@@ -92,7 +92,7 @@ class RobustGPModel(GPyOpt.models.GPModel):
             """
             Updates the model with new observations.
             """
-            #X, Y = self._preprocess_data(X_all, Y_all)
+            X, Y = X_all, Y_all #X, Y = self._preprocess_data(X_all, Y_all)
             
             if self.model is None: 
                 self._create_model(X, Y)
