@@ -56,7 +56,8 @@ class RobustGPModel(GPyOpt.models.GPModel):
             
         # Log if wanted
         if self.log_space:
-            Y = np.log(Y)
+            eps = Y.min() + 1e-8
+            Y = np.log(Y + eps)
         
         # Normalize
         if self.normalize_Y:
@@ -92,7 +93,7 @@ class RobustGPModel(GPyOpt.models.GPModel):
             """
             Updates the model with new observations.
             """
-            X, Y = X_all, Y_all #X, Y = self._preprocess_data(X_all, Y_all)
+            X, Y = self._preprocess_data(X_all, Y_all)
             
             if self.model is None: 
                 self._create_model(X, Y)

@@ -71,7 +71,7 @@ class ClusteringBO(EchoStateNetworkCV):
                     # Validation score
                     scores[n, k] = scr.test(y[cutoff:], x[cutoff:], scoring_method='L2', burn_in=self.esn_burn_in)
                 else:
-                    scores[n, k] = scr.test(y, x, out_weights=self.readouts[:, k], scoring_method='nmse', burn_in=self.esn_burn_in)
+                    scores[n, k] = scr.test(y, x, out_weights=self.readouts[:, k], scoring_method='L2', burn_in=self.esn_burn_in)
         
         # Checks
         assert(np.all(np.isfinite(scores)))
