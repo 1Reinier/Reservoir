@@ -108,53 +108,12 @@ class ClusteringBO(EchoStateNetworkCV):
         fold_size = n_samples // self.cv_samples
         
         # Score placeholder
-        scores = np.zeros((self.cv_samples, n_series))
-        
+        scores = np.zeros(n_series)
+    
         for n in range(n_series):
-            
-            # Get state for series n
-            state = esn.generate_states(self.x[:, n].reshape(-1, 1), burn_in=self.esn_burn_in)
-            
-            for k in range(self.cv_samples):
-                # Get y_n
-                y = y_all[:, n].reshape(-1, 1)
-                
-                # Validation folds
-                start_index = k * fold_size
-                stop_index = start_index + fold_size
-                
-                # Indices
-                validation_indices = np.arange(start_index, stop_index)
-                
-                # Train mask
-                train_mask = np.ones(n_samples, dtype=bool)
-                train_mask[validation_indices] = False
-                
-                # Concatenate inputs with node states
-                train_x = state[train_mask]
-                train_y = y[train_mask]
-                
-                # Ridge regression
-                ridge_x = train_x.T @ train_x + self.regularization * np.eye(train_x.shape[1])
-                ridge_y = train_x.T @ train_y 
-                
-                # Solve for out weights
-                try:
-                    # Cholesky solution (fast)
-                    out_weights = np.linalg.solve(ridge_x, ridge_y).reshape(-1, 1)
-                except np.linalg.LinAlgError:
-                    # Pseudo-inverse solution
-                    out_weights = scipy.linalg.pinvh(ridge_x, ridge_y, rcond=1e6*np.finfo('d').eps).reshape(-1, 1)  # Robust solution if ridge_x is singular
-                
-                # Validation set
-                validation_x = state[validation_indices]
-                validation_y = y[validation_indices]
-                
-                # Predict
-                prediction = validation_x @ out_weights
-                
-                # Score
-                scores[k, n] = esn.error(prediction, validation_y, scoring_method=self.scoring_method)
+            y = y_all[:, n].reshape(-1, 1)
+            x = self.x[:, n]
+            esn.validation_score(y, x, folds=cv_samples, burn_in=self.esn_burn_in, scoring_method=self.scoring_method)
             
         # Pass back as a column vector (as required by GPyOpt)
         mean_score = scores.mean()

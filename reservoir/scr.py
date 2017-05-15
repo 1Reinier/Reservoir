@@ -112,6 +112,60 @@ class SimpleCycleReservoir:
         
         # Return all data for computation or visualization purposes
         return state, y, burn_in
+        
+    def validation_score(self, y, x, folds=5, scoring_method='L2', burn_in=30):
+        """Trains and gives k-folds validation score"""
+        # Get states
+        state = self.generate_states(x, burn_in=self.esn_burn_in)
+        
+        # Placeholder
+        scores = np.zeros(folds)
+        
+        # Get y
+        y = y[burn_in:]
+        
+        for k in range(folds):
+            
+            # Validation folds
+            start_index = k * fold_size
+            stop_index = start_index + fold_size
+            
+            # Indices
+            validation_indices = np.arange(start_index, stop_index)
+            
+            # Train mask
+            train_mask = np.ones(y.shape[0], dtype=bool)
+            train_mask[validation_indices] = False
+            
+            # Concatenate inputs with node states
+            train_x = state[train_mask]
+            train_y = y[train_mask]
+            
+            # Ridge regression
+            ridge_x = train_x.T @ train_x + self.regularization * np.eye(train_x.shape[1])
+            ridge_y = train_x.T @ train_y 
+            
+            # Solve for out weights
+            try:
+                # Cholesky solution (fast)
+                out_weights = np.linalg.solve(ridge_x, ridge_y).reshape(-1, 1)
+            except np.linalg.LinAlgError:
+                # Pseudo-inverse solution
+                out_weights = scipy.linalg.pinvh(ridge_x, ridge_y, rcond=1e6*np.finfo('d').eps).reshape(-1, 1)  # Robust solution if ridge_x is singular
+            
+            # Validation set
+            validation_x = state[validation_indices]
+            validation_y = y[validation_indices]
+            
+            # Predict
+            prediction = validation_x @ out_weights
+            
+            # Score
+            scores[k] = self.error(prediction, validation_y, scoring_method=scoring_method, burn_in=burn_in)
+        
+        return scores.mean()
+            
+            
             
     def test(self, y, x, out_weights=None, scoring_method='L2', burn_in=30, alpha=1., **kwargs):
         """Tests and scores against known output.
