@@ -277,7 +277,7 @@ class EchoStateNetworkCV:
         
         # Keywords to feed into Bayesian Optimization
         gamma_prior = lambda: GPy.priors.Gamma(1., 1.)  
-        kernel = GPy.kern.Matern52(input_dim=len(self.parameters), ARD=True)
+        kernel = GPy.kern.Matern52(input_dim=len(self.free_parameters), ARD=True)
         kernel.variance.set_prior(gamma_prior())
         kernel.lengthscale.set_prior(gamma_prior())
 
@@ -418,7 +418,7 @@ class EchoStateNetworkCV:
             pass
         
         # Set initial design
-        n = len(self.parameters)
+        n = len(self.free_parameters)
         initial_parameters = pyDOE.lhs(n, self.initial_samples, 'cm') # Latin hypercube initialization
         
         # Pick evaluator
