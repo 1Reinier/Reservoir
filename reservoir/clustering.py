@@ -100,7 +100,7 @@ class ClusteringBO(EchoStateNetworkCV):
         esn = self.model(**arguments)
         
         # Get all series
-        y_all = self.y[esn_burn_in:]
+        y_all = self.y[self.esn_burn_in:]
         
         # Syntactic sugar
         n_samples = state.shape[0]
