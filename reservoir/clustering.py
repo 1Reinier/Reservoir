@@ -105,17 +105,17 @@ class ClusteringBO(EchoStateNetworkCV):
         # Syntactic sugar
         n_samples = y_all.shape[0]
         n_series = y_all.shape[1]
-        fold_size = n_samples // cv_samples
+        fold_size = n_samples // self.cv_samples
         
         # Score placeholder
-        scores = np.zeros((cv_samples, n_series))
+        scores = np.zeros((self.cv_samples, n_series))
         
         for n in n_series:
             
             # Get state for series n
             state = esn.generate_states(self, self.x[:, n], burn_in=self.esn_burn_in)
             
-            for k in cv_samples:
+            for k in self.cv_samples:
                 # Get y_n
                 y = y_all[:, n]
                 
