@@ -21,7 +21,7 @@ class ClusteringBO(EchoStateNetworkCV):
     
     """
     
-    def __init__(self, bounds, responsibilities, readouts=None, eps=1e-6, initial_samples=100, max_iterations=300, log_space=True,
+    def __init__(self, bounds, responsibilities=None, readouts=None, eps=1e-6, initial_samples=100, max_iterations=300, log_space=True,
                  burn_in=30, seed=123, verbose=True, **kwargs):
         
         # Initialize optimizer
@@ -35,10 +35,10 @@ class ClusteringBO(EchoStateNetworkCV):
         self.responsibilities = responsibilities
         
         # Set objective accordingly
-        if self.readouts is None:
-            self.objective_sampler = self.k_folds_objective
+        if self.readouts is None or self.responsibilities is None:
+            self.objective_sampler = self.k_folds_objective  # Trains
         else:
-            self.objective_sampler = self.clustering_objective
+            self.objective_sampler = self.clustering_objective  # Gets trained input
 
     def clustering_objective(self, parameters):
         # Get arguments
@@ -100,12 +100,10 @@ class ClusteringBO(EchoStateNetworkCV):
         esn = self.model(**arguments)
         
         # Get all series
-        y_all = self.y[self.esn_burn_in:]
+        y_all = self.y
         
         # Syntactic sugar
-        n_samples = y_all.shape[0]
         n_series = y_all.shape[1]
-        fold_size = n_samples // self.cv_samples
         
         # Score placeholder
         scores = np.zeros(n_series)
