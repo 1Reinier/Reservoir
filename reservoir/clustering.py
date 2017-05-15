@@ -36,9 +36,9 @@ class ClusteringBO(EchoStateNetworkCV):
         
         # Set objective accordingly
         if self.readouts is None:
-            self.objective_sampler = k_folds_objective
+            self.objective_sampler = self.k_folds_objective
         else:
-            self.objective_sampler = clustering_objective
+            self.objective_sampler = self.clustering_objective
 
     def clustering_objective(self, parameters):
         # Get arguments
