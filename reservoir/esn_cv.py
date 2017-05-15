@@ -72,7 +72,6 @@ class EchoStateNetworkCV:
         # Bookkeeping
         self.bounds = OrderedDict(bounds)  # Fix order
         self.parameters = list(self.bounds.keys())
-        self.indices = dict(zip(self.parameters, range(len(self.parameters))))  # Parameter indices
         self.free_parameters = []
         self.fixed_parameters = []
         
@@ -122,12 +121,13 @@ class EchoStateNetworkCV:
         scalings = []
         intercepts = []
         for name, domain in self.bounds.items():
-            
             # Get any fixed parmeters
             if type(domain) == int:
                 # Take note
                 self.fixed_parameters.append(name)
-            
+                continue
+                
+            # Free parameters
             elif type(domain) == tuple:
                 # Bookkeeping
                 self.free_parameters.append(name)

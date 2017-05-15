@@ -21,7 +21,7 @@ class ClusteringBO(EchoStateNetworkCV):
     
     """
     
-    def __init__(self, bounds, readouts, responsibilities, eps=1e-3, initial_samples=100, max_iterations=300, log_space=True,
+    def __init__(self, bounds, responsibilities, readouts=None, eps=1e-3, initial_samples=100, max_iterations=300, log_space=True,
                  burn_in=30, seed=123, verbose=True, **kwargs):
         
         # Initialize optimizer
@@ -59,7 +59,22 @@ class ClusteringBO(EchoStateNetworkCV):
             
             # Compute score per cluster
             for k in range(k_clusters):
-                scores[n, k] = scr.test(y, x, out_weights=self.readouts[:, k], scoring_method='L2', burn_in=self.esn_burn_in)
+                if readouts is None:
+                    # Validation set
+                    cutoff = int((1 - self.validate_fraction) * x.shape[0])
+                    if cutoff >= self.esn_burn_in:
+                        raise ValueError("Validation set shorter than ESN burn in")
+                    
+                    # Train model
+                    scr.train(y[:cutoff], x[:cutoff], burn_in=self.esn_burn_in)
+                    
+                    # Validation score
+                    scores[n, k] = scr.test(y[cutoff:], x[cutoff:], scoring_method='L2', burn_in=self.esn_burn_in)
+                else:
+                    scores[n, k] = scr.test(y, x, out_weights=self.readouts[:, k], scoring_method='L2', burn_in=self.esn_burn_in)
+        
+        # Checks
+        assert(np.all(np.isfinite(scores)))
         
         # Compute final scores
         final_score = np.sum(self.responsibilities * scores)
