@@ -103,8 +103,8 @@ class ClusteringBO(EchoStateNetworkCV):
         y_all = self.y[self.esn_burn_in:]
         
         # Syntactic sugar
-        n_samples = state.shape[0]
-        n_series = self.y.shape[1]
+        n_samples = y_all.shape[0]
+        n_series = y_all.shape[1]
         fold_size = n_samples // cv_samples
         
         # Score placeholder
