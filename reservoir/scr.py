@@ -154,7 +154,7 @@ class SimpleCycleReservoir:
                 out_weights = np.linalg.solve(ridge_x, ridge_y).reshape(-1, 1)
             except np.linalg.LinAlgError:
                 # Pseudo-inverse solution
-                out_weights = scipy.linalg.pinvh(ridge_x, ridge_y, rcond=1e6*np.finfo('d').eps).reshape(-1, 1)  # Robust solution if ridge_x is singular
+                out_weights = scipy.linalg.pinvh(ridge_x, ridge_y, rcond=1e3*np.finfo('f').eps).reshape(-1, 1)  # Robust solution if ridge_x is singular
             
             # Validation set
             validation_x = state[validation_indices]
