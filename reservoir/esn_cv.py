@@ -122,7 +122,7 @@ class EchoStateNetworkCV:
         intercepts = []
         for name, domain in self.bounds.items():
             # Get any fixed parmeters
-            if type(domain) == int:
+            if type(domain) == int or type(domain) == float:
                 # Take note
                 self.fixed_parameters.append(name)
                 continue
