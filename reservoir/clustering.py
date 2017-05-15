@@ -113,7 +113,7 @@ class ClusteringBO(EchoStateNetworkCV):
         for n in range(n_series):
             
             # Get state for series n
-            state = esn.generate_states(self, self.x[:, n], burn_in=self.esn_burn_in)
+            state = esn.generate_states(self.x[:, n], burn_in=self.esn_burn_in)
             
             for k in range(self.cv_samples):
                 # Get y_n
