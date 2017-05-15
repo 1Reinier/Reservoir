@@ -112,7 +112,7 @@ class ClusteringBO(EchoStateNetworkCV):
     
         for n in range(n_series):
             y = y_all[:, n].reshape(-1, 1)
-            x = self.x[:, n]
+            x = self.x[:, n].reshape(-1, 1)
             scores[n] = esn.validation_score(y, x, folds=self.cv_samples, burn_in=self.esn_burn_in, scoring_method=self.scoring_method)
             
         # Pass back as a column vector (as required by GPyOpt)
