@@ -21,7 +21,7 @@ class SimpleCycleReservoir:
     def generate_reservoir(self):
         """Generates transition weights"""
         # Set reservoir weights
-        self.weights = np.zeros((self.n_nodes, self.n_nodes))
+        self.weights = np.zeros((self.n_nodes, self.n_nodes), dtype=float)
         self.weights[0, -1] = self.cyclic_weight
         for i in range(self.n_nodes - 1):
             self.weights[i+1, i] = self.cyclic_weight
@@ -48,7 +48,7 @@ class SimpleCycleReservoir:
         rows = x.shape[0]
         
         # Build state matrix
-        state = np.zeros((rows, self.n_nodes))
+        state = np.zeros((rows, self.n_nodes), dtype=float)
             
         # Set and scale input weights (for memory length and non-linearity)
         self.in_weights = np.full(shape=(self.n_nodes, x.shape[1]), fill_value=self.input_weight, dtype=float)
@@ -99,7 +99,7 @@ class SimpleCycleReservoir:
         train_y = y[burn_in:]  # Include everything after burn_in
         
         # Ridge regression
-        ridge_x = train_x.T @ train_x + self.regularization * np.eye(train_x.shape[1])
+        ridge_x = train_x.T @ train_x + self.regularization * np.eye(train_x.shape[1], dtype=float)
         ridge_y = train_x.T @ train_y 
         
         # Solve for out weights
@@ -119,7 +119,7 @@ class SimpleCycleReservoir:
         state = self.generate_states(x, burn_in=burn_in)
         
         # Placeholder
-        scores = np.zeros(folds)
+        scores = np.zeros(folds, dtype=float)
         
         # Get y
         y = y[burn_in:]

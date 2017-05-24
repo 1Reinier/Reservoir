@@ -21,8 +21,8 @@ class ClusteringBO(EchoStateNetworkCV):
     
     """
     
-    def __init__(self, bounds, responsibilities=None, readouts=None, beta=None, eps=1e-6, initial_samples=100, max_iterations=300, log_space=True,
-                 burn_in=30, seed=123, verbose=True, **kwargs):
+    def __init__(self, bounds, responsibilities=None, readouts=None, beta=None, eps=1e-6, initial_samples=100, 
+                 max_iterations=300, log_space=True, burn_in=30, seed=123, verbose=True, **kwargs):
         
         # Initialize optimizer
         super().__init__(bounds, subsequence_length=-1, model=SimpleCycleReservoir, eps=eps, 
@@ -107,7 +107,7 @@ class ClusteringBO(EchoStateNetworkCV):
         n_series = y_all.shape[1]
         
         # Score placeholder
-        scores = np.zeros(n_series)
+        scores = np.zeros(n_series, dtype=float)
     
         for n in range(n_series):
             y = y_all[:, n].reshape(-1, 1)
