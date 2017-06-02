@@ -31,7 +31,7 @@ class EchoStateNetworkCV:
         Number of samples in one cross-validation sample
     eps : float
         The number specifying the maximum amount of change in parameters before considering convergence
-    initial_samples : int (minimum 30)
+    initial_samples : int
         The number of random samples to explore the  before starting optimization
     validate_fraction : float
         The fraction of the data that may be used as a validation set
@@ -60,6 +60,8 @@ class EchoStateNetworkCV:
         Maximum number of concurrent jobs
     esn_feedback : bool or None
         Build ESNs with feedback ('teacher forcing') if available
+    update_interval : int (default 1)
+        After how many acquisitions the GPModel should be updated
     verbose : bool
         Verbosity on or off
     
@@ -68,7 +70,7 @@ class EchoStateNetworkCV:
     def __init__(self, bounds, subsequence_length, model=EchoStateNetwork, eps=1e-8, initial_samples=50, 
                  validate_fraction=0.2, steps_ahead=1, max_iterations=1000, batch_size=1, cv_samples=1, 
                  scoring_method='nmse', log_space=True, tanh_alpha=1., esn_burn_in=100, acquisition_type='LCB',
-                 max_time=np.inf, n_jobs=1, random_seed=123, esn_feedback=None, verbose=True):
+                 max_time=np.inf, n_jobs=1, random_seed=123, esn_feedback=None, update_interval=1, verbose=True):
         # Bookkeeping
         self.bounds = OrderedDict(bounds)  # Fix order
         self.parameters = list(self.bounds.keys())
@@ -94,6 +96,7 @@ class EchoStateNetworkCV:
         self.n_jobs = n_jobs
         self.seed = random_seed
         self.feedback = esn_feedback
+        self.update_interval = update_interval
         self.verbose = verbose
         
         # Normalize bounds domains and remember transformation
