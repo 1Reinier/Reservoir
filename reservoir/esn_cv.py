@@ -434,7 +434,7 @@ class EchoStateNetworkCV:
         self.optimizer = GPyOpt.methods.ModularBayesianOptimization(model=model, space=space, objective=objective, 
                                                                     acquisition=acquisition, evaluator=evaluator,
                                                                     X_init=initial_parameters, normalize_Y=True, 
-                                                                    model_update_interval=1)
+                                                                    model_update_interval=self.update_interval)
         self.optimizer.modular_optimization = True
                                      
         # Show model
