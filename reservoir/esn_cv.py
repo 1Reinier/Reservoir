@@ -421,7 +421,7 @@ class EchoStateNetworkCV:
         
         # Set initial design
         n = len(self.free_parameters)
-        initial_parameters = pyDOE.lhs(n, self.initial_samples, 'cm') # Latin hypercube initialization
+        initial_parameters = pyDOE.lhs(n, self.initial_samples, 'm') # Latin hypercube initialization
         
         # Pick evaluator
         evaluator = GPyOpt.core.evaluators.sequential.Sequential(acquisition=acquisition, 
