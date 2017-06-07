@@ -170,6 +170,107 @@ class SimpleCycleReservoir:
         
         # Return mean validation score
         return scores.mean()
+        
+    def train_validate_multiple(self, y, x, series_weights, folds=5, scoring_method='L2', burn_in=30):
+        """Trains and gives k-folds validation score for multiple series
+        
+        Parameters
+        ==========
+        y
+        x
+        series_weights : array
+            Array of n_series values, with the weighting of the series toward the regression
+            
+        Returns
+        =======
+        scores.mean(), out_weights.mean(axis=1) : tuple (float, array)
+            Mean error during cross-validation on weighted ridge regression
+        
+        """
+        # Checks
+        assert(y.shape == x.shape, 'Data matrices not of equal shape')
+        
+        # Easy retrieval
+        t_steps = y.shape[0]
+        n_series = y.shape[1]
+        effective_length = t_steps - burn_in
+        samples = effective_length * n_series
+        
+        # Concatenate all states
+        states = np.zeros((samples, self.n_nodes), dtype=float)
+        all_y = np.zeros((samples, 1), dtype=float)
+        for n, start_index in enumerate(range(0, samples, effective_length)):
+            
+            # Get states
+            states[start_index: start_index + effective_length, :] = self.generate_states(x[:, n], burn_in=burn_in)
+            
+            # Concatenate output
+            all_y[start_index: start_index + effective_length, 0] = y[burn_in:, n]
+            
+        # Sample weights
+        weights = np.diag(series_weights.repeat(effective_length))
+        
+        # Shuffle data
+        #random_state = np.random.RandomState(self.seed + 2)
+        permutation = np.random.suffle(np.arange(all_y.shape[0]))
+        shuffled_states = states[permutation]
+        shuffled_y = all_y[permutation]
+        shuffled_weights = weights[permutation]
+                
+        # Placeholders
+        scores = np.zeros(folds, dtype=float)
+        out_weights = np.zeros((self.n_nodes, folds), float)
+        
+        # Fold size
+        fold_size = all_y.shape[0] // folds
+        
+        # Checks
+        assert(fold_size > burn_in, 'Burn-in too large for current k-folds cross-validation')
+        
+        # K-folds
+        for k in range(folds):
+            
+            # Validation folds
+            start_index = k * fold_size
+            stop_index = start_index + fold_size
+            
+            # Indices
+            validation_indices = np.arange(start_index, stop_index)
+            
+            # Train mask
+            train_mask = np.ones(y.shape[0], dtype=bool)
+            train_mask[validation_indices] = False
+            
+            # Concatenate inputs with node states
+            train_x = shuffled_states[train_mask]
+            train_y = shuffled_y[train_mask]
+            train_weights = shuffled_weights[train_mask]
+            
+            # Ridge regression
+            ridge_x = train_x.T @ train_weights @ train_x + self.regularization * np.eye(train_x.shape[1])
+            ridge_y = train_x.T @ train_weights @ train_y 
+            
+            # Solve for out weights
+            try:
+                # Cholesky solution (fast)
+                out_weights = np.linalg.solve(ridge_x, ridge_y).reshape(-1, 1)
+            except np.linalg.LinAlgError:
+                # Pseudo-inverse solution
+                out_weights = (scipy.linalg.pinvh(ridge_x) @ ridge_y).reshape(-1, 1)  # Robust solution if ridge_x is singular
+            
+            # Validation set
+            validation_x = state[validation_indices]
+            validation_y = y[validation_indices]
+            
+            # Predict
+            prediction = validation_x @ out_weights
+            
+            # Save
+            scores[k] = self.error(prediction, validation_y, scoring_method)
+            out_weights[: k] = out_weights
+        
+        # Return mean validation score
+        return scores.mean(), out_weights.mean(axis=1)
             
     def test(self, y, x, out_weights=None, scoring_method='L2', burn_in=30, alpha=1., **kwargs):
         """Tests and scores against known output.
