@@ -193,10 +193,11 @@ class Suppressor(object):
         self.stdout = sys.stdout
         sys.stdout = self
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, type_, value, trace):
         sys.stdout = self.stdout
-        if type is not None:
+        if type_ is not None:
             # Do normal exception handling
-
+            traceback.print_tb(trace)
+    
     def write(self, x): 
         pass
