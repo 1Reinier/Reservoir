@@ -64,7 +64,7 @@ class ClusteringBO(EchoStateNetworkCV):
             
             # Compute score per cluster
             for k in range(k_clusters):
-                scores[n, k] = esn.validation_score(y, x, folds=self.cv_samples, burn_in=self.esn_burn_in, 
+                scores[n, k] = scr.validation_score(y, x, folds=self.cv_samples, burn_in=self.esn_burn_in, 
                                                     scoring_method=self.scoring_method)
         
         # Compute final scores
