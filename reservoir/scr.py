@@ -118,6 +118,8 @@ class SimpleCycleReservoir:
         # Get states
         state = self.generate_states(x, burn_in=burn_in)
         
+        print('State:', state)
+        
         # Placeholder
         scores = np.zeros(folds, dtype=float)
         
