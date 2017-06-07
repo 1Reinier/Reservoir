@@ -169,7 +169,6 @@ class SimpleCycleReservoir:
             scores[k] = self.error(prediction, validation_y, scoring_method)
         
         # Return mean validation score
-        print('Scores from k_folds:', not np.all(np.isfinite(scores)))
         return scores.mean()
             
     def test(self, y, x, out_weights=None, scoring_method='L2', burn_in=30, alpha=1., **kwargs):
