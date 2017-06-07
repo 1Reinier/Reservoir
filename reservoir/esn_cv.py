@@ -101,7 +101,7 @@ class EchoStateNetworkCV:
         self.feedback = esn_feedback
         self.update_interval = update_interval
         self.verbose = verbose
-        self.plot
+        self.plot = plot
         
         # Normalize bounds domains and remember transformation
         self.scaled_bounds, self.bound_scalings, self.bound_intercepts = self.normalize_bounds(self.bounds)                              
