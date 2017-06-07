@@ -126,9 +126,12 @@ class SimpleCycleReservoir:
         
         print('Y finite:', not np.all(np.isfinite(y)), y.shape)
         print('X finite:', not np.all(np.isfinite(x)), x.shape)
+        print('State shape:', state.shape)
         
         # Fold size
         fold_size = y.shape[0] // folds
+        
+        assert(fold_size > burn_in, 'Burn_in too large')
         
         for k in range(folds):
             
