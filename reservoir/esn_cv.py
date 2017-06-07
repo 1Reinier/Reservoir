@@ -457,7 +457,7 @@ class EchoStateNetworkCV:
         else:
             plot_path = None
         
-        if self.plot:
+        if self.plot or not store_path is None:
             self.optimizer.plot_convergence(filename=plot_path)
             
         # Store in dict
