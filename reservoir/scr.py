@@ -117,14 +117,15 @@ class SimpleCycleReservoir:
         """Trains and gives k-folds validation score"""
         # Get states
         state = self.generate_states(x, burn_in=burn_in)
-        
-        print('State:', not np.all(np.isfinite(state)))
-        
+                
         # Placeholder
         scores = np.zeros(folds, dtype=float)
         
         # Get y
         y = y[burn_in:]
+        
+        print('Y finite:', not np.all(np.isfinite(y)), y.shape)
+        print('X finite:', not np.all(np.isfinite(x)), x.shape)
         
         # Fold size
         fold_size = y.shape[0] // folds
