@@ -3,7 +3,6 @@ import GPyOpt
 #import GPflow
 import copy
 
-
 __all__ = ['GPflowModel'] # TODO: MCMC
 
 

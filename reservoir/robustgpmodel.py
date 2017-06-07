@@ -6,7 +6,6 @@ import GPyOpt
 import GPy
 import copy
 import contextlib
-import sys
 from scipy.special import gammaln, digamma
 from paramz.domains import _REAL, _POSITIVE
 
@@ -72,7 +71,7 @@ class RobustGPModel(GPyOpt.models.GPModel):
         """
         Creates the model given some input data X and Y.
         """
-        with no_stdout:
+        with Suppressor():
             # Kernel and priors
             self.input_dim = X.shape[1]
             kernel = GPy.kern.Matern52(self.input_dim, ARD=True)
@@ -185,14 +184,19 @@ class FixedInverseGamma(GPy.priors.Gamma):
     def rvs(self, n):
         return 1. / np.random.gamma(scale=1. / self.b, shape=self.a, size=n)
 
+# From: https://stackoverflow.com/questions/2828953/silence-the-stdout-of-a-function-in-python-without-trashing-sys-stdout-and-resto/40054132#40054132
+import sys, traceback
 
-# From: https://stackoverflow.com/questions/2828953/silence-the-stdout-of-a-function-in-python-without-trashing-sys-stdout-and-resto
-class DummyFile(object):
-    def write(self, x): pass
+class Suppressor(object):
 
-@contextlib.contextmanager
-def no_stdout():
-    save_stdout = sys.stdout
-    sys.stdout = DummyFile()
-    yield
-    sys.stdout = save_stdout
+    def __enter__(self):
+        self.stdout = sys.stdout
+        sys.stdout = self
+
+    def __exit__(self, type, value, traceback):
+        sys.stdout = self.stdout
+        if type is not None:
+            # Do normal exception handling
+
+    def write(self, x): 
+        pass
