@@ -21,9 +21,8 @@ class ClusteringBO(EchoStateNetworkCV):
     
     """
     
-    def __init__(self, bounds, responsibilities=None, readouts=None, beta=None, eps=1e-6, initial_samples=100, 
-                 max_iterations=300, log_space=True, burn_in=30, seed=123, verbose=True, cv_samples=5, plot=True, 
-                 **kwargs):
+    def __init__(self, bounds, assignment=None, eps=1e-6, initial_samples=100, max_iterations=300, 
+                 log_space=True, burn_in=30, seed=123, verbose=True, cv_samples=5, plot=True, **kwargs):
         
         # Initialize optimizer
         super().__init__(bounds, subsequence_length=-1, model=SimpleCycleReservoir, eps=eps, 
@@ -32,11 +31,10 @@ class ClusteringBO(EchoStateNetworkCV):
                          log_space=log_space, cv_samples=cv_samples, plot=plot, **kwargs)
         
         # Save out weights for later
-        self.readouts = readouts
-        self.responsibilities = responsibilities
+        self.assignment = assignment
         
         # Set objective accordingly
-        if self.readouts is None or self.responsibilities is None:
+        if self.assignment is None:
             self.objective_sampler = self.k_folds_objective  # Trains
         else:
             self.objective_sampler = self.clustering_objective  # Gets trained input
@@ -46,11 +44,11 @@ class ClusteringBO(EchoStateNetworkCV):
         arguments = self.construct_arguments(parameters)
         
         # Make simple sycle reservoir
-        scr = SimpleCycleReservoir(**arguments)
+        scr = self.model(**arguments)
         
         # How many series doe we have
         n_series = self.x.shape[1]
-        k_clusters = self.readouts.shape[1]
+        k_clusters = self.assignment.shape[1]
         
         # Simple check
         assert(n_series == self.y.shape[1])
@@ -66,11 +64,11 @@ class ClusteringBO(EchoStateNetworkCV):
             
             # Compute score per cluster
             for k in range(k_clusters):
-                readout = self.readouts[:, k].reshape(-1, 1)
-                scores[n, k] = scr.test(y, x, out_weights=readout, scoring_method=self.scoring_method, burn_in=self.esn_burn_in)
+                scores[n, k] = esn.validation_score(y, x, folds=self.cv_samples, burn_in=self.esn_burn_in, 
+                                                    scoring_method=self.scoring_method)
         
         # Compute final scores
-        final_score = np.sum(self.responsibilities * scores)
+        final_score = np.mean(self.assignment * scores)
         
         # Inform user
         if self.verbose:
@@ -113,7 +111,8 @@ class ClusteringBO(EchoStateNetworkCV):
         for n in range(n_series):
             y = y_all[:, n].reshape(-1, 1)
             x = self.x[:, n].reshape(-1, 1)
-            scores[n] = esn.validation_score(y, x, folds=self.cv_samples, burn_in=self.esn_burn_in, scoring_method=self.scoring_method)
+            scores[n] = esn.validation_score(y, x, folds=self.cv_samples, burn_in=self.esn_burn_in, 
+                                             scoring_method=self.scoring_method)
             
         # Pass back as a column vector (as required by GPyOpt)
         mean_score = scores.mean()
