@@ -176,14 +176,14 @@ class SimpleCycleReservoir:
         
         Parameters
         ==========
-        y
-        x
+        y : array
+        x : array
         series_weights : array
             Array of n_series values, with the weighting of the series toward the regression
             
         Returns
         =======
-        scores.mean(), out_weights.mean(axis=1) : tuple (float, array)
+        scores.mean() : float
             Mean error during cross-validation on weighted ridge regression
         
         """
@@ -270,7 +270,8 @@ class SimpleCycleReservoir:
             out_weights[: k] = out_weights
         
         # Return mean validation score
-        return scores.mean(), out_weights.mean(axis=1)
+        self.out_weights = out_weights.mean(axis=1)
+        return scores.mean()
             
     def test(self, y, x, out_weights=None, scoring_method='L2', burn_in=30, alpha=1., **kwargs):
         """Tests and scores against known output.
