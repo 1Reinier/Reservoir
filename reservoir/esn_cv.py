@@ -64,13 +64,16 @@ class EchoStateNetworkCV:
         After how many acquisitions the GPModel should be updated
     verbose : bool
         Verbosity on or off
+    plot : bool
+        Show convergence plot at end of optimization
     
     """
     
     def __init__(self, bounds, subsequence_length, model=EchoStateNetwork, eps=1e-8, initial_samples=50, 
                  validate_fraction=0.2, steps_ahead=1, max_iterations=1000, batch_size=1, cv_samples=1, 
                  scoring_method='nmse', log_space=True, tanh_alpha=1., esn_burn_in=100, acquisition_type='LCB',
-                 max_time=np.inf, n_jobs=1, random_seed=123, esn_feedback=None, update_interval=1, verbose=True):
+                 max_time=np.inf, n_jobs=1, random_seed=123, esn_feedback=None, update_interval=1, verbose=True, 
+                 plot=True):
         # Bookkeeping
         self.bounds = OrderedDict(bounds)  # Fix order
         self.parameters = list(self.bounds.keys())
@@ -98,6 +101,7 @@ class EchoStateNetworkCV:
         self.feedback = esn_feedback
         self.update_interval = update_interval
         self.verbose = verbose
+        self.plot
         
         # Normalize bounds domains and remember transformation
         self.scaled_bounds, self.bound_scalings, self.bound_intercepts = self.normalize_bounds(self.bounds)                              
@@ -409,12 +413,6 @@ class EchoStateNetworkCV:
         # Add Local Penalization
         #lp_acquisition = GPyOpt.acquisitions.LP.AcquisitionLP(model, space, acquisition_optimizer, acquisition, transform='none')
         
-        # Set acquisition jitter to low number if used
-        # try:
-        #     acquisition.jitter = 1e-8
-        # except AttributeError:
-        #     pass
-        
         # Set initial design
         n = len(self.free_parameters)
         initial_parameters = pyDOE.lhs(n, self.initial_samples, 'm') # Latin hypercube initialization
@@ -458,7 +456,9 @@ class EchoStateNetworkCV:
             plot_path = store_path[-5] + '_convergence.png'
         else:
             plot_path = None
-        self.optimizer.plot_convergence(filename=plot_path)
+        
+        if self.plot:
+            self.optimizer.plot_convergence(filename=plot_path)
             
         # Store in dict
         best_arguments = self.construct_arguments(self.optimizer.x_opt)

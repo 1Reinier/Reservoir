@@ -5,9 +5,10 @@ import numpy as np
 import GPyOpt
 import GPy
 import copy
+import contextlib
+import sys
 from scipy.special import gammaln, digamma
 from paramz.domains import _REAL, _POSITIVE
-
 
 
 __all__ = ['RobustGPModel']
@@ -71,23 +72,24 @@ class RobustGPModel(GPyOpt.models.GPModel):
         """
         Creates the model given some input data X and Y.
         """
-        # Kernel and priors
-        self.input_dim = X.shape[1]
-        kernel = GPy.kern.Matern52(self.input_dim, ARD=True)
-        prior = FixedInverseGamma(.001, .001)
-        kernel.lengthscale.set_prior(prior)
-        kernel.variance.set_prior(prior)
-        
-        # Model
-        noise_var = 1. if self.noise_var is None else self.noise_var
-        self.model = GPy.models.GPRegression(X, Y, kernel=kernel, noise_var=noise_var)
-        self.model.likelihood.variance.set_prior(prior)
-        
-        # Evaluation constriant
-        if self.exact_feval or noise_var < 1e-6:
-            self.model.Gaussian_noise.constrain_fixed(1e-6, warning=False)
-        else: 
-            self.model.Gaussian_noise.constrain_positive(warning=False)
+        with no_stdout:
+            # Kernel and priors
+            self.input_dim = X.shape[1]
+            kernel = GPy.kern.Matern52(self.input_dim, ARD=True)
+            prior = FixedInverseGamma(.001, .001)
+            kernel.lengthscale.set_prior(prior)
+            kernel.variance.set_prior(prior)
+            
+            # Model
+            noise_var = 1. if self.noise_var is None else self.noise_var
+            self.model = GPy.models.GPRegression(X, Y, kernel=kernel, noise_var=noise_var)
+            self.model.likelihood.variance.set_prior(prior)
+            
+            # Evaluation constriant
+            if self.exact_feval or noise_var < 1e-6:
+                self.model.Gaussian_noise.constrain_fixed(1e-6, warning=False)
+            else: 
+                self.model.Gaussian_noise.constrain_positive(warning=False)
             
     def updateModel(self, X_all, Y_all, X_new, Y_new):
             """
@@ -182,3 +184,15 @@ class FixedInverseGamma(GPy.priors.Gamma):
 
     def rvs(self, n):
         return 1. / np.random.gamma(scale=1. / self.b, shape=self.a, size=n)
+
+
+# From: https://stackoverflow.com/questions/2828953/silence-the-stdout-of-a-function-in-python-without-trashing-sys-stdout-and-resto
+class DummyFile(object):
+    def write(self, x): pass
+
+@contextlib.contextmanager
+def no_stdout():
+    save_stdout = sys.stdout
+    sys.stdout = DummyFile()
+    yield
+    sys.stdout = save_stdout
