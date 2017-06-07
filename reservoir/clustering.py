@@ -7,7 +7,7 @@ __all__ = ['ClusteringBO']
 
 
 class ClusteringBO(EchoStateNetworkCV):
-    """Bayesian Optimization with an objective optimized for ESN Clustering (Gianniotis 2017)
+    """Bayesian Optimization with an objective optimized for ESN Clustering (Maat & Gianniotis, 2017)
     
     Parameters
     ----------

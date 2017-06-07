@@ -335,10 +335,6 @@ class EchoStateNetworkCV:
         # Inform user
         if self.verbose:        
             print('Done.')
-            
-        # Purge temporary data references
-        del self.x
-        del self.y
         
         # Store in dict
         best_arguments = self.construct_arguments(self.optimizer.x_opt)
