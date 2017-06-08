@@ -207,8 +207,8 @@ class SimpleCycleReservoir:
             # Concatenate output
             all_y[start_index: start_index + effective_length, 0] = y[burn_in:, n]
             
-        # Sample weights
-        weights = np.diag(series_weights.repeat(effective_length))
+        # Series weights
+        sample_weights = series_weights.repeat(effective_length)
         
         # Shuffle data
         random_state = np.random.RandomState(self.seed + 2)
@@ -216,7 +216,7 @@ class SimpleCycleReservoir:
         random_state.shuffle(permutation)
         shuffled_states = states[permutation]
         shuffled_y = all_y[permutation]
-        shuffled_weights = weights[permutation]
+        shuffled_weights = sample_weights[permutation]
         
         # Placeholders
         scores = np.zeros(folds, dtype=float)
@@ -245,7 +245,8 @@ class SimpleCycleReservoir:
             # Concatenate inputs with node states
             train_x = shuffled_states[train_mask]
             train_y = shuffled_y[train_mask]
-            train_weights = shuffled_weights[train_mask]
+            masked_weights = shuffled_weights[train_mask]
+            train_weights = np.diag(masked_weights)
             
             print(train_x.shape, train_y.shape, train_weights.shape)
             
