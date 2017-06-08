@@ -220,7 +220,7 @@ class SimpleCycleReservoir:
         
         # Placeholders
         scores = np.zeros(folds, dtype=float)
-        out_weights = np.zeros((self.n_nodes, folds), dtype=float)
+        out_weights = np.zeros((self.n_nodes + 1, folds), dtype=float)
         
         # Fold size
         fold_size = samples // folds
@@ -269,7 +269,7 @@ class SimpleCycleReservoir:
             
             # # Save
             # scores[k] = self.error(prediction, validation_y, scoring_method)
-            out_weights[: k] = out_weights
+            out_weights[:, k] = out_weights
         
         # Return mean validation score
         self.out_weights = out_weights.mean(axis=1)
