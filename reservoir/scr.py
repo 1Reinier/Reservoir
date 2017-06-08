@@ -212,7 +212,8 @@ class SimpleCycleReservoir:
         
         # Shuffle data
         random_state = np.random.RandomState(self.seed + 2)
-        permutation = random_state.shuffle(np.arange(samples))
+        permutation = np.arange(samples)
+        random_state.shuffle(permutation)
         shuffled_states = states[permutation]
         shuffled_y = all_y[permutation]
         shuffled_weights = weights[permutation]
