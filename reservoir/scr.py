@@ -197,7 +197,7 @@ class SimpleCycleReservoir:
         samples = effective_length * n_series
         
         # Concatenate all states
-        states = np.zeros((samples, self.n_nodes), dtype=float)
+        states = np.zeros((samples, self.n_nodes + 1), dtype=float)  # Add one column for intercept
         all_y = np.zeros((samples, 1), dtype=float)
         for n, start_index in enumerate(range(0, samples, effective_length)):
             
