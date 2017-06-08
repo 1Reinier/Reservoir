@@ -269,7 +269,7 @@ class SimpleCycleReservoir:
             
             # # Save
             # scores[k] = self.error(prediction, validation_y, scoring_method)
-            out_weights[:, k] = out_weights
+            out_weights[:, k] = out_weights.reshape(-1,)
         
         # Return mean validation score
         self.out_weights = out_weights.mean(axis=1)
