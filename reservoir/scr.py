@@ -220,7 +220,7 @@ class SimpleCycleReservoir:
         
         # Placeholders
         scores = np.zeros(folds, dtype=float)
-        out_weights = np.zeros((self.n_nodes + 1, folds), dtype=float)
+        readouts = np.zeros((self.n_nodes + 1, folds), dtype=float)
         
         # Fold size
         fold_size = samples // folds
@@ -267,13 +267,13 @@ class SimpleCycleReservoir:
             # Predict
             prediction = validation_x @ out_weights
             
-            # # Save
-            # scores[k] = self.error(prediction, validation_y, scoring_method)
-            out_weights[:, k] = out_weights.reshape(-1,)
+            # Save
+            scores[k] = self.error(prediction, validation_y, scoring_method)
+            readouts[:, k] = out_weights
         
         # Return mean validation score
         self.out_weights = out_weights.mean(axis=1)
-        # return scores.mean()
+        return scores.mean()
             
     def test(self, y, x, out_weights=None, scoring_method='L2', burn_in=30, alpha=1., **kwargs):
         """Tests and scores against known output.
