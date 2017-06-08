@@ -212,17 +212,17 @@ class SimpleCycleReservoir:
         
         # Shuffle data
         random_state = np.random.RandomState(self.seed + 2)
-        permutation = random_state.shuffle(np.arange(all_y.shape[0]))
+        permutation = random_state.shuffle(np.arange(samples))
         shuffled_states = states[permutation]
         shuffled_y = all_y[permutation]
         shuffled_weights = weights[permutation]
         
         # Placeholders
         scores = np.zeros(folds, dtype=float)
-        out_weights = np.zeros((self.n_nodes, folds), float)
+        out_weights = np.zeros((self.n_nodes, folds), dtype=float)
         
         # Fold size
-        fold_size = all_y.shape[0] // folds
+        fold_size = samples // folds
         
         # Checks
         assert(fold_size > burn_in, 'Burn-in too large for current k-folds cross-validation')
@@ -238,7 +238,7 @@ class SimpleCycleReservoir:
             validation_indices = np.arange(start_index, stop_index)
             
             # Train mask
-            train_mask = np.ones(y.shape[0], dtype=bool)
+            train_mask = np.ones(samples, dtype=bool)
             train_mask[validation_indices] = False
             
             # Concatenate inputs with node states
