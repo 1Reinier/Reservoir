@@ -247,6 +247,8 @@ class SimpleCycleReservoir:
             train_y = shuffled_y[train_mask]
             train_weights = shuffled_weights[train_mask]
             
+            print(train_x.shape, train_y.shape, train_weights.shape)
+            
             # Ridge regression
             ridge_x = train_x.T @ train_weights @ train_x + self.regularization * np.eye(train_x.shape[1])
             ridge_y = train_x.T @ train_weights @ train_y 
