@@ -263,19 +263,19 @@ class SimpleCycleReservoir:
                 out_weights = (scipy.linalg.pinvh(ridge_x) @ ridge_y).reshape(-1, 1)  # Robust solution if ridge_x is singular
             
             # Validation set
-            validation_x = state[validation_indices]
-            validation_y = y[validation_indices]
+            validation_x = shuffled_states[validation_indices]
+            validation_y = shuffled_y[validation_indices]
             
             # Predict
             prediction = validation_x @ out_weights
             
-            # Save
-            scores[k] = self.error(prediction, validation_y, scoring_method)
+            # # Save
+            # scores[k] = self.error(prediction, validation_y, scoring_method)
             out_weights[: k] = out_weights
         
         # Return mean validation score
         self.out_weights = out_weights.mean(axis=1)
-        return scores.mean()
+        # return scores.mean()
             
     def test(self, y, x, out_weights=None, scoring_method='L2', burn_in=30, alpha=1., **kwargs):
         """Tests and scores against known output.
