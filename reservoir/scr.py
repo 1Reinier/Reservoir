@@ -202,7 +202,7 @@ class SimpleCycleReservoir:
         for n, start_index in enumerate(range(0, samples, effective_length)):
             
             # Get states
-            states[start_index: start_index + effective_length, :] = self.generate_states(x[:, n], burn_in=burn_in)
+            states[start_index: start_index + effective_length, :] = self.generate_states(x[:, n].reshape(-1, 1), burn_in=burn_in)
             
             # Concatenate output
             all_y[start_index: start_index + effective_length, 0] = y[burn_in:, n]
@@ -216,7 +216,7 @@ class SimpleCycleReservoir:
         shuffled_states = states[permutation]
         shuffled_y = all_y[permutation]
         shuffled_weights = weights[permutation]
-                
+        
         # Placeholders
         scores = np.zeros(folds, dtype=float)
         out_weights = np.zeros((self.n_nodes, folds), float)
