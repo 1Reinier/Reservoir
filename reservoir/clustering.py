@@ -51,7 +51,7 @@ class ClusteringBO(EchoStateNetworkCV):
         k_clusters = self.assignment.shape[1]
         
         # Simple check
-        assert(n_series == self.y.shape[1])
+        assert n_series == self.y.shape[1]
         
         # Placeholder
         scores = np.zeros((n_series, k_clusters), dtype=float)

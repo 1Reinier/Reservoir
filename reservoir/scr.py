@@ -127,7 +127,7 @@ class SimpleCycleReservoir:
         # Fold size
         fold_size = y.shape[0] // folds
         
-        assert(fold_size > burn_in, 'Burn_in too large for current k-folds')
+        assert fold_size > burn_in, 'Burn_in too large for current k-folds'
         
         for k in range(folds):
             
@@ -183,12 +183,12 @@ class SimpleCycleReservoir:
             
         Returns
         =======
-        scores.mean() : float
-            Mean error during cross-validation on weighted ridge regression
+        scores : array
+            Errors for all series during cross-validation on weighted ridge regression
         
         """
         # Checks
-        assert(y.shape == x.shape, 'Data matrices not of equal shape')
+        assert y.shape == x.shape, 'Data matrices not of equal shape'
         
         # Easy retrieval
         t_steps = y.shape[0]
@@ -226,7 +226,7 @@ class SimpleCycleReservoir:
         fold_size = samples // folds
         
         # Checks
-        assert(fold_size > burn_in, 'Burn-in too large for current k-folds cross-validation')
+        assert fold_size > burn_in, 'Burn-in too large for current k-folds cross-validation'
         
         # K-folds
         for k in range(folds):
@@ -273,7 +273,7 @@ class SimpleCycleReservoir:
         
         # Return mean validation score
         self.out_weights = out_weights.mean(axis=1)
-        return scores.mean()
+        return scores
             
     def test(self, y, x, out_weights=None, scoring_method='L2', burn_in=30, alpha=1., **kwargs):
         """Tests and scores against known output.
@@ -301,7 +301,7 @@ class SimpleCycleReservoir:
         y_predicted = self.predict_stepwise(x, out_weights=out_weights)
         
         # Checks
-        assert(y_predicted.shape[0] == y.shape[0])
+        assert y_predicted.shape[0] == y.shape[0]
             
         # Return error
         return self.error(y_predicted[burn_in:], y[burn_in:], scoring_method, alpha=alpha)
