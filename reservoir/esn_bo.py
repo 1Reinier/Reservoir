@@ -4,6 +4,7 @@
 import numpy as np
 from GPyOpt.core.bo import BO
 from GPyOpt.util.general import best_value
+from GPyOpt.methods.modular_bayesian_optimization import ModularBayesianOptimization
 
 
 __all__ = ['EchoStateBO']
@@ -36,16 +37,18 @@ class EchoStateBO(BO):
         self.modular_optimization = True
         
         # Create optimization space
-        super().__init__(model=model, 
-                         space=space, 
-                         objective=objective,
-                         acquisition=acquisition, 
-                         evaluator=evaluator,
-                         X_init=X_init, 
-                         Y_init=Y_init,
-                         cost=None,
-                         normalize_Y=False,  # Normalization done by RobustGPModel
-                         model_update_interval=model_update_interval)
+        super(EchoStateBO, self).__init__(model=model, 
+                                          space=space, 
+                                          objective=objective,
+                                          acquisition=acquisition, 
+                                          evaluator=evaluator,
+                                          X_init=X_init, 
+                                          Y_init=Y_init,
+                                          cost=None,
+                                          normalize_Y=False,  # Normalization done by RobustGPModel
+                                          model_update_interval=model_update_interval)
+        print(self.X, self.Y)
+        print('Inits:', X_init, Y_init)
     
     def run_target_optimization(self, target_score=0., max_iter=2048, max_time=np.inf, eps=1e-8, verbosity=True):
         """ 
