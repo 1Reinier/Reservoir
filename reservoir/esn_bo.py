@@ -47,8 +47,6 @@ class EchoStateBO(BO):
                                           cost=None,
                                           normalize_Y=False,  # Normalization done by RobustGPModel
                                           model_update_interval=model_update_interval)
-        print(self.X, self.Y)
-        print('Inits:', X_init, Y_init)
     
     def run_target_optimization(self, target_score=0., max_iter=2048, max_time=np.inf, eps=1e-8, verbosity=True):
         """ 
@@ -60,13 +58,12 @@ class EchoStateBO(BO):
         :param verbosity: flag to print the optimization results after each iteration (default, True).
         :param report_file: filename of the file where the results of the optimization are saved (default, None).
         """
-
         # Save the options to print and save the results
         self.verbosity = verbosity
         
         # Avoid stacking: create full X and Y
         X_full = np.zeros((max_iter, self.X.shape[1]))
-        Y_full = np.zeros((max_iter, self.Y.shape[1]))
+        Y_full = np.zeros((max_iter, 1))
 
         # Setting up stop conditions
         self.eps = eps 
