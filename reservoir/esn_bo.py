@@ -1,6 +1,7 @@
 # Based on the source code of GPyOpt/methods/modular_bayesian_optimization.py,
 # which is licensed under the BSD 3-clause license
 
+import time
 import numpy as np
 from GPyOpt.core.bo import BO
 from GPyOpt.util.general import best_value
