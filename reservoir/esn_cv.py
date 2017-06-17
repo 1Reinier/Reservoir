@@ -210,7 +210,7 @@ class EchoStateNetworkCV:
         if 'n_nodes' in arguments:
             arguments['n_nodes'] = int(np.round(arguments['n_nodes']))  # Discretize
         
-        if not self.feedback is not None:
+        if not self.feedback is None:
             arguments['feedback'] = self.feedback
             
         return arguments
