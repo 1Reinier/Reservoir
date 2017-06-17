@@ -161,8 +161,8 @@ class EchoStateBO(BO):
         Computes the distance between the last two evaluations.
         """
         i = self.num_acquisitions
-        last = self.X_full[i, :]
-        previous = self.X_full[i - 1, :]
+        last = self.X[i, :]
+        previous = self.X[i - 1, :]
         return np.linalg.norm(last - previous)
     
     def _update_model(self):
