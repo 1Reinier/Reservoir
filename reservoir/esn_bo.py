@@ -6,6 +6,7 @@ import numpy as np
 from GPyOpt.core.bo import BO
 from GPyOpt.util.general import best_value
 from GPyOpt.methods.modular_bayesian_optimization import ModularBayesianOptimization
+from GPyOpt.plotting.plots_bo import plot_acquisition, plot_convergence
 
 
 __all__ = ['EchoStateBO']
