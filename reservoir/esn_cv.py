@@ -2,6 +2,7 @@ from .esn import *
 from .scr import *
 from .gpflowmodel import *
 from .robustgpmodel import *
+from .esn_bo import *
 import numpy as np
 import GPy
 import GPyOpt
@@ -66,6 +67,8 @@ class EchoStateNetworkCV:
         Verbosity on or off
     plot : bool
         Show convergence plot at end of optimization
+    target_score : float
+        Quit when reaching this target score
     
     """
     
@@ -73,7 +76,7 @@ class EchoStateNetworkCV:
                  validate_fraction=0.2, steps_ahead=1, max_iterations=1000, batch_size=1, cv_samples=1, 
                  scoring_method='nmse', log_space=True, tanh_alpha=1., esn_burn_in=100, acquisition_type='LCB',
                  max_time=np.inf, n_jobs=1, random_seed=123, esn_feedback=None, update_interval=1, verbose=True, 
-                 plot=True):
+                 plot=True, target_score=0.):
         # Bookkeeping
         self.bounds = OrderedDict(bounds)  # Fix order
         self.parameters = list(self.bounds.keys())
@@ -102,6 +105,7 @@ class EchoStateNetworkCV:
         self.update_interval = update_interval
         self.verbose = verbose
         self.plot = plot
+        self.target_score = target_score
         
         # Normalize bounds domains and remember transformation
         self.scaled_bounds, self.bound_scalings, self.bound_intercepts = self.normalize_bounds(self.bounds)                              
@@ -206,7 +210,7 @@ class EchoStateNetworkCV:
         if 'n_nodes' in arguments:
             arguments['n_nodes'] = int(np.round(arguments['n_nodes']))  # Discretize
         
-        if not self.feedback is None:
+        if not self.feedback is not None:
             arguments['feedback'] = self.feedback
             
         return arguments
@@ -246,113 +250,6 @@ class EchoStateNetworkCV:
             # Check shape equality
             if x.shape[0] != y.shape[0]:
                 raise ValueError("y-array and x-array have different number of samples (rows)")    
-    
-    def optimize_mcmc(self, y, x=None, mcmc_samples=None, store_path=None):
-        """Deprecated optimization code. Can use MCMC if needed.
-        
-        Performs optimization (with cross-validation).
-        
-        Uses Bayesian Optimization with Gaussian Process priors to optimize ESN hyperparameters.
-        
-        Parameters
-        ----------
-        y : numpy array
-            Array with target values (y-values)
-        
-        x : numpy array or None
-            Optional array with input values (x-values)
-        
-        store_path : str or None
-            Optional path where to store best found parameters to disk (in JSON)
-        
-        Returns
-        -------
-        best_arguments : numpy array
-            The best parameters found during optimization
-        
-        """
-        # Checks
-        self.validate_data(y, x, self.verbose)
-        
-        # Initialize new random state
-        self.random_state = np.random.RandomState(self.seed + 2)
-        
-        # Temporarily store the data
-        self.x = x
-        self.y = y
-        
-        # Keywords to feed into Bayesian Optimization
-        gamma_prior = lambda: GPy.priors.Gamma(1., 1.)  
-        kernel = GPy.kern.Matern52(input_dim=len(self.free_parameters), ARD=True)
-        kernel.variance.set_prior(gamma_prior())
-        kernel.lengthscale.set_prior(gamma_prior())
-
-        keyword_arguments = {'kernel': kernel}
-        
-        if mcmc_samples is None:
-            # MLE solution
-            model_type = 'GP'
-            completed_acquisition_type = self.acquisition_type
-        else:
-            # MCMC solution
-            model_type = 'GP_MCMC'
-            completed_acquisition_type = self.acquisition_type + '_MCMC'
-            keyword_arguments['n_samples'] = mcmc_samples
-            
-        if self.batch_size > 1:
-            # Add more exploration if batch size is larger than 1
-            #keyword_arguments['evaluator_type'] = 'local_penalization'  # BUG: convergence is not consistent
-            pass
-        
-        if self.verbose:
-            print("Model initialization and exploration run...")
-        
-        # Build optimizer    
-        self.optimizer = GPyOpt.methods.BayesianOptimization(f=self.objective_sampler,
-                                                             domain=self.scaled_bounds,
-                                                             initial_design_numdata=self.initial_samples,
-                                                             model_type=model_type, 
-                                                             acquisition_type=completed_acquisition_type,
-                                                             exact_feval=False,
-                                                             normalize_Y=True,
-                                                             cost_withGradients=None,
-                                                             acquisition_optimizer_type='lbfgs',
-                                                             verbosity=self.verbose,
-                                                             num_cores=self.n_jobs, 
-                                                             batch_size=self.batch_size,
-                                                             **keyword_arguments) 
-                                                             
-                                                             
-        # Show model
-        if self.verbose:
-            print("Model initialization done. \n")
-            print(self.optimizer.model.model, '\n')
-            print(self.optimizer.model.model.kern.lengthscale, '\n')
-        
-        if self.verbose:
-            print("Starting optimization...")
-        
-        # Optimize
-        self.optimizer.run_optimization(eps=self.eps, max_iter=self.max_iterations, max_time=self.max_time, 
-                                        verbosity=self.verbose)
-        
-        # Inform user
-        if self.verbose:        
-            print('Done.')
-        
-        # Store in dict
-        best_arguments = self.construct_arguments(self.optimizer.x_opt)
-        
-        # Save to disk if desired
-        if not store_path is None:
-            with open(store_path, 'w+') as output_file:
-                json.dump(best_arguments, output_file, indent=4)
-        
-        # Show convergence
-        self.optimizer.plot_convergence()
-        
-        # Return best parameters
-        return best_arguments
         
     def optimize(self, y, x=None, store_path=None):
         """Performs optimization (with cross-validation).
@@ -390,7 +287,6 @@ class EchoStateNetworkCV:
         if self.verbose:
             print("Model initialization and exploration run...")
         
-        
         # Define objective
         objective = GPyOpt.core.task.SingleObjective(self.objective_sampler, 
                                                      objective_name='ESN Objective',
@@ -404,18 +300,18 @@ class EchoStateNetworkCV:
         acquisition_type = self.acquisition_type
         model = RobustGPModel(normalize_Y=True, log_space=self.log_space)
 
-        
         # Set acquisition
         acquisition_optimizer = GPyOpt.optimization.AcquisitionOptimizer(space, optimizer='lbfgs')
         SelectedAcquisition = GPyOpt.acquisitions.select_acquisition(acquisition_type)
         acquisition = SelectedAcquisition(model=model, space=space, optimizer=acquisition_optimizer)
         
         # Add Local Penalization
-        #lp_acquisition = GPyOpt.acquisitions.LP.AcquisitionLP(model, space, acquisition_optimizer, acquisition, transform='none')
+        # lp_acquisition = GPyOpt.acquisitions.LP.AcquisitionLP(model, space, acquisition_optimizer, acquisition, 
+        # transform='none')
         
         # Set initial design
         n = len(self.free_parameters)
-        initial_parameters = pyDOE.lhs(n, self.initial_samples, 'm') # Latin hypercube initialization
+        initial_parameters = pyDOE.lhs(n, self.initial_samples, 'm')  # Latin hypercube initialization
         
         # Pick evaluator
         evaluator = GPyOpt.core.evaluators.sequential.Sequential(acquisition=acquisition, 
@@ -425,27 +321,20 @@ class EchoStateNetworkCV:
             print("Starting optimization...", '\n')
         
         # Build optimizer
-        self.optimizer = GPyOpt.methods.ModularBayesianOptimization(model=model, space=space, objective=objective, 
-                                                                    acquisition=acquisition, evaluator=evaluator,
-                                                                    X_init=initial_parameters, normalize_Y=True, 
-                                                                    model_update_interval=self.update_interval)
-        self.optimizer.modular_optimization = True
-                                     
-        # Show model
-        if self.verbose:
-            print("Model initialization done.", '\n')
-            print(self.optimizer.model.model, '\n')
-            print(self.optimizer.model.model.kern.lengthscale, '\n')
+        self.optimizer = EchoStateBO(model=model, space=space, objective=objective, 
+                                     acquisition=acquisition, evaluator=evaluator,
+                                     X_init=initial_parameters, model_update_interval=self.update_interval)
         
         # Optimize
-        self.optimizer.run_optimization(eps=self.eps, 
-                                        max_iter=self.max_iterations, 
-                                        max_time=self.max_time, 
-                                        verbosity=self.verbose)
+        self.iterations_taken = self.optimizer.run_target_optimization(target_score=self.target_score,
+                                                                       eps=self.eps, 
+                                                                       max_iter=self.max_iterations, 
+                                                                       max_time=self.max_time, 
+                                                                       verbosity=self.verbose)
         
         # Inform user
         if self.verbose: 
-            print('Done.')
+            print('Done after', self.iterations_taken, 'iterations.')
             
         # Purge temporary data references
         del self.x
@@ -541,7 +430,7 @@ class EchoStateNetworkCV:
         # Score storage
         scores = np.zeros((self.cv_samples, n_series))
         
-         # Get samples
+        # Get samples
         for i in range(self.cv_samples):  # TODO: Can be parallelized
             
             # Get indices

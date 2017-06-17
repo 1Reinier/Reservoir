@@ -24,7 +24,7 @@ class SimpleCycleReservoir:
         self.weights = np.zeros((self.n_nodes, self.n_nodes), dtype=float)
         self.weights[0, -1] = self.cyclic_weight
         for i in range(self.n_nodes - 1):
-            self.weights[i+1, i] = self.cyclic_weight
+            self.weights[i + 1, i] = self.cyclic_weight
         
         # Set out to none to indicate untrained ESN
         self.out_weights = None
@@ -108,7 +108,8 @@ class SimpleCycleReservoir:
             self.out_weights = np.linalg.solve(ridge_x, ridge_y).reshape(-1, 1)
         except np.linalg.LinAlgError:
             # Pseudo-inverse solution
-            self.out_weights = (scipy.linalg.pinvh(ridge_x) @ ridge_y).reshape(-1, 1)  # Robust solution if ridge_x is singular
+            self.out_weights = (scipy.linalg.pinvh(ridge_x) @ 
+                                ridge_y).reshape(-1, 1)  # Robust solution if ridge_x is singular
         
         # Return all data for computation or visualization purposes
         return state, y, burn_in
@@ -156,7 +157,8 @@ class SimpleCycleReservoir:
                 out_weights = np.linalg.solve(ridge_x, ridge_y).reshape(-1, 1)
             except np.linalg.LinAlgError:
                 # Pseudo-inverse solution
-                out_weights = (scipy.linalg.pinvh(ridge_x) @ ridge_y).reshape(-1, 1)  # Robust solution if ridge_x is singular
+                out_weights = (scipy.linalg.pinvh(ridge_x) @ 
+                               ridge_y).reshape(-1, 1)  # Robust solution if ridge_x is singular
             
             # Validation set
             validation_x = state[validation_indices]
@@ -202,7 +204,8 @@ class SimpleCycleReservoir:
         for n, start_index in enumerate(range(0, samples, effective_length)):
             
             # Get states
-            states[start_index: start_index + effective_length, :] = self.generate_states(x[:, n].reshape(-1, 1), burn_in=burn_in)
+            states[start_index: start_index + effective_length, :] = self.generate_states(x[:, n].reshape(-1, 1), 
+                                                                                          burn_in=burn_in)
             
             # Concatenate output
             all_y[start_index: start_index + effective_length, 0] = y[burn_in:, n]
@@ -258,7 +261,8 @@ class SimpleCycleReservoir:
                 out_weights = np.linalg.solve(ridge_x, ridge_y).reshape(-1, 1)
             except np.linalg.LinAlgError:
                 # Pseudo-inverse solution
-                out_weights = (scipy.linalg.pinvh(ridge_x) @ ridge_y).reshape(-1, 1)  # Robust solution if ridge_x is singular
+                out_weights = (scipy.linalg.pinvh(ridge_x) @ 
+                               ridge_y).reshape(-1, 1)  # Robust solution if ridge_x is singular
             
             # Validation set
             validation_x = shuffled_states[validation_indices]

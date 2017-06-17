@@ -1,4 +1,4 @@
-# Based on the source code of GPyOpt/ models/gpmodel.py,
+# Based on the source code of GPyOpt/models/gpmodel.py,
 # which is licensed under the BSD 3-clause license
 
 import numpy as np
@@ -6,6 +6,8 @@ import GPyOpt
 import GPy
 import copy
 import contextlib
+import sys
+import traceback
 from scipy.special import gammaln, digamma
 from paramz.domains import _REAL, _POSITIVE
 
@@ -17,9 +19,11 @@ class RobustGPModel(GPyOpt.models.GPModel):
     """
     General class for handling a Gaussian Process in GPyOpt. 
 
+    Adapted from GPModel (Copyright (c) 2016, the GPyOpt Authors, BSD 3 license)
+    
     :param kernel: GPy kernel to use in the GP model.
     :param noise_var: value of the noise variance if known.
-    :param exact_feval: whether noiseless evaluations are available. IMPORTANT to make the optimization work well in noiseless scenarios (default, False).
+    :param exact_feval: whether noiseless evaluations are available. 
     :param normalize_Y: normalization of the outputs to the interval [0,1] (default, True). 
     :param optimizer: optimizer of the model. Check GPy for details.
     :param max_iters: maximum number of iterations used to optimize the parameters of the model.
@@ -30,7 +34,8 @@ class RobustGPModel(GPyOpt.models.GPModel):
     """
     analytical_gradient_prediction = True 
     
-    def __init__(self, noise_var=None, log_space=False, exact_feval=False, normalize_Y=True, max_iters=1000, verbose=True, **kwargs):
+    def __init__(self, noise_var=None, log_space=False, exact_feval=False, normalize_Y=True, 
+                 max_iters=1000, verbose=True, **kwargs):
         super().__init__()
         self.noise_var = noise_var
         self.log_space = log_space
@@ -42,7 +47,7 @@ class RobustGPModel(GPyOpt.models.GPModel):
 
     def _preprocess_data(self, X, Y):
         # Remove non-finite values
-        finite_mask = np.isfinite(Y.ravel()) ##TODO Detect outliers that are not infinite
+        finite_mask = np.isfinite(Y.ravel())  # TODO: Detect outliers that are not infinite
         infinite_indices = np.nonzero(~finite_mask)[0]
         
         # Replace with mean
@@ -56,8 +61,7 @@ class RobustGPModel(GPyOpt.models.GPModel):
             
         # Log if wanted
         if self.log_space:
-            eps = np.abs(Y.min()) + 1e-8
-            Y = np.log(Y + eps)
+            Y = np.log(Y + 1e-8)  # Y will be negative when working with (N)MSE
         
         # Normalize
         if self.normalize_Y:
@@ -90,7 +94,7 @@ class RobustGPModel(GPyOpt.models.GPModel):
             else: 
                 self.model.Gaussian_noise.constrain_positive(warning=False)
             
-    def updateModel(self, X_all, Y_all, X_new, Y_new):
+    def updateModel(self, X_all, Y_all):
             """
             Updates the model with new observations.
             """
@@ -102,18 +106,19 @@ class RobustGPModel(GPyOpt.models.GPModel):
                 self.model.set_XY(X, Y)
                 
             # Update model
-            self.model.optimize(optimizer='lbfgs', messages=False, max_iters=self.max_iters, ipython_notebook=True, clear_after_finish=True)
-
+            self.model.optimize(optimizer='lbfgs', messages=False, max_iters=self.max_iters, 
+                                ipython_notebook=True, clear_after_finish=True)
 
     def predict(self, X):
             """
-            Predictions with the model. Returns posterior means and standard deviations at X. Note that this is different in GPy where the variances are given. 
+            Predictions with the model. Returns posterior means and standard deviations at X. 
+            Note that this is different in GPy where the variances are given. 
             """
-            if X.ndim==1: X = X[None,:]
+            if X.ndim == 1: 
+                X = X[None, :]
             m, v = self.model.predict(X)
             v = np.clip(v, 1e-10, np.inf)
             return m, np.sqrt(v)
-
 
     def get_fmin(self):
             """
@@ -121,19 +126,18 @@ class RobustGPModel(GPyOpt.models.GPModel):
             """
             return self.model.predict(self.model.X)[0].min()
 
-        
     def predict_withGradients(self, X):
             """
             Returns the mean, standard deviation, mean gradient and standard deviation gradient at X.
             """
-            if X.ndim==1: X = X[None,:]
+            if X.ndim == 1: 
+                X = X[None, :]
             m, v = self.model.predict(X)
             v = np.clip(v, 1e-10, np.inf)
             dmdx, dvdx = self.model.predictive_gradients(X)
-            dmdx = dmdx[:,:,0]
-            dsdx = dvdx / (2*np.sqrt(v))
+            dmdx = dmdx[:, :, 0]
+            dsdx = dvdx / (2 * np.sqrt(v))
             return m, np.sqrt(v), dmdx, dsdx
-
 
     def copy(self):
             """
@@ -141,13 +145,11 @@ class RobustGPModel(GPyOpt.models.GPModel):
             """
             return copy.deepcopy(self)
 
-
     def get_model_parameters(self):
             """
             Returns a 2D numpy array with the parameters of the model
             """
             return np.atleast_2d(self.model[:])
-
 
     def get_model_parameters_names(self):
             """
@@ -184,10 +186,13 @@ class FixedInverseGamma(GPy.priors.Gamma):
     def rvs(self, n):
         return 1. / np.random.gamma(scale=1. / self.b, shape=self.a, size=n)
 
-# From: https://stackoverflow.com/questions/2828953/silence-the-stdout-of-a-function-in-python-without-trashing-sys-stdout-and-resto/40054132#40054132
-import sys, traceback
 
 class Suppressor(object):
+    """
+    Adapted from: https://stackoverflow.com/questions/2828953/ \
+        silence-the-stdout-of-a-function-in-python-without-trashing-sys-stdout-and-resto/40054132#40054132
+        
+    """
 
     def __enter__(self):
         self.stdout = sys.stdout

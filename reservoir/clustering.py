@@ -21,14 +21,15 @@ class ClusteringBO(EchoStateNetworkCV):
     
     """
     
-    def __init__(self, bounds, assignment=None, eps=1e-6, initial_samples=100, max_iterations=300, 
+    def __init__(self, bounds, assignment=None, target=0., eps=1e-6, initial_samples=100, max_iterations=300, 
                  log_space=True, burn_in=30, seed=123, verbose=True, cv_samples=5, plot=True, **kwargs):
         
         # Initialize optimizer
         super().__init__(bounds, subsequence_length=-1, model=SimpleCycleReservoir, eps=eps, 
                          initial_samples=initial_samples, max_iterations=max_iterations, 
                          esn_burn_in=burn_in, random_seed=seed, verbose=verbose, 
-                         log_space=log_space, cv_samples=cv_samples, plot=plot, **kwargs)
+                         log_space=log_space, cv_samples=cv_samples, plot=plot, target_score=target,
+                         **kwargs)
         
         # Save out weights for later
         self.assignment = assignment

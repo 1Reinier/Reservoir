@@ -62,7 +62,6 @@ class EchoStateNetwork:
         self.feedback = feedback
         self.seed = random_seed
         self.generate_reservoir()
-
         
     def generate_reservoir(self):
         """Generates random reservoir from parameters set at initialization."""
@@ -409,7 +408,8 @@ class EchoStateNetwork:
         
         # Check input
         if not x is None and not x.shape[0] == t_steps:
-            raise ValueError('x has the wrong size for prediction: x.shape[0] = {}, while y.shape[0] = {}'.format(x.shape[0], t_steps))
+            raise ValueError('x has the wrong size for prediction: x.shape[0] = {}, while y.shape[0] = {}'
+                             .format(x.shape[0], t_steps))
 
         # Choose correct input
         if x is None and not self.feedback:

@@ -1,9 +1,10 @@
 import numpy as np
 import GPyOpt
-#import GPflow
+# import GPflow
 import copy
 
-__all__ = ['GPflowModel'] # TODO: MCMC
+
+__all__ = ['GPflowModel']
 
 
 class GPflowModel(GPyOpt.models.GPModel):
@@ -54,11 +55,12 @@ class GPflowModel(GPyOpt.models.GPModel):
         self._last_optimization_result = self.model.optimize(method='SLSQP', 
                                                              maxiter=1000, 
                                                              tol=.01)
+    
     def predict(self, X):
         "Get the predicted mean and std at X."
         # Expand if needed
         if X.ndim == 1:
-            X = X[np.newaxis,:]
+            X = X[np.newaxis, :]
         
         # Predict
         mean, variance = self.model.predict_f(X)
@@ -69,7 +71,7 @@ class GPflowModel(GPyOpt.models.GPModel):
         "Get the gradients of the predicted mean and variance at X."
         # Expand if needed
         if X.ndim == 1:
-            X = X[np.newaxis,:]
+            X = X[np.newaxis, :]
         
         # Predict
         mean, variance = self.model.predict(X)
@@ -77,7 +79,7 @@ class GPflowModel(GPyOpt.models.GPModel):
         
         # Get gradients
         dm_dx, dv_dx = self.model.predictive_gradients(X)
-        dm_dx = dm_dx[:,:,0]
+        dm_dx = dm_dx[:, :, 0]
         ds_dx = dv_dx / (2 * std)
         return mean, std, dm_dx, ds_dx
     
