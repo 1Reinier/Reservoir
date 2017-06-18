@@ -2,7 +2,9 @@
 import sys
 from setuptools import setup
 
-__version__ = '0.2'
+
+__version__ = '1.0'
+
 
 def setup_package():
     needs_sphinx = {'build_sphinx', 'upload_docs'}.intersection(sys.argv)
