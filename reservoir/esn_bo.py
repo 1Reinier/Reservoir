@@ -123,7 +123,7 @@ class EchoStateBO(BO):
             self.num_acquisitions += 1
             
             # Target check
-            if np.any(Y_new < self.target):
+            if np.any(Y_new <= self.target):
                 if self.verbosity:
                     print('Target reached at iteration', self.num_acquisitions)
                 break
