@@ -314,8 +314,12 @@ class EchoStateNetworkCV:
         initial_parameters = pyDOE.lhs(n, self.initial_samples, 'm')  # Latin hypercube initialization
         
         # Pick evaluator
-        evaluator = GPyOpt.core.evaluators.sequential.Sequential(acquisition=acquisition, 
-                                                                 batch_size=self.batch_size)
+        if self.batch_size == 1:
+            evaluator = GPyOpt.core.evaluators.sequential.Sequential(acquisition=acquisition, 
+                                                                     batch_size=self.batch_size)
+        else:
+            evaluator = GPyOpt.core.evaluators.RandomBatch(acquisition=acquisition=,
+                                                           batch_size=self.batch_size)
         # Show progress bar
         if self.verbose:
             print("Starting optimization...", '\n')
