@@ -135,7 +135,9 @@ class EchoStateBO(BO):
                 break
             
             # Convergence
-            if self._distance_last_evaluations(sample_size) < self.eps: 
+            distance = self._distance_last_evaluations(sample_size)
+            print(distance) if self.num_acquisitions % 10 else None
+            if distance <= self.eps: 
                 if self.verbosity:
                     print('Converged at iteration', self.num_acquisitions)
                 break
@@ -165,7 +167,8 @@ class EchoStateBO(BO):
         i = self.num_acquisitions
         last = self.X[i, :]
         previous = self.X[i - sample_size, :]  # in Batch mode only the first sample is non-random
-        return np.linalg.norm(last - previous)
+        distance = np.linalg.norm(last - previous, ord=1)  # Manhattan distance
+        return difference
     
     def _update_model(self):
         """
