@@ -120,6 +120,7 @@ class EchoStateBO(BO):
             
             # Update current evaluation time and function evaluations
             self.cum_time = time.time() - self.time_zero  
+            distance = self._distance_last_evaluations(sample_size)
             self.num_acquisitions += 1
             
             # Target check
@@ -135,7 +136,6 @@ class EchoStateBO(BO):
                 break
             
             # Convergence
-            distance = self._distance_last_evaluations(sample_size)
             print(distance) if self.num_acquisitions % 10 == 0 else None
             if distance <= self.eps: 
                 if self.verbosity:
