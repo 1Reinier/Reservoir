@@ -135,7 +135,7 @@ class EchoStateBO(BO):
                 break
             
             # Convergence
-            if self._distance_last_evaluations() < self.eps: 
+            if self._distance_last_evaluations(sample_size) < self.eps: 
                 if self.verbosity:
                     print('Converged at iteration', self.num_acquisitions)
                 break
@@ -158,13 +158,13 @@ class EchoStateBO(BO):
         """
         return self.evaluator.compute_batch()
     
-    def _distance_last_evaluations(self):
+    def _distance_last_evaluations(self, sample_size):
         """
         Computes the distance between the last two evaluations.
         """
         i = self.num_acquisitions
         last = self.X[i, :]
-        previous = self.X[i - 1, :]
+        previous = self.X[i - sample_size, :]  # in Batch mode only the first sample is non-random
         return np.linalg.norm(last - previous)
     
     def _update_model(self):
