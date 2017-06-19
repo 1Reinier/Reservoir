@@ -126,7 +126,8 @@ class EchoStateBO(BO):
             # Target check
             if np.any(Y_new <= self.target):
                 if self.verbosity:
-                    print('Target reached at iteration', self.num_acquisitions)
+                    pass
+                print('Target reached at iteration', self.num_acquisitions)
                 break
             
             # Check maximum iterations
@@ -136,10 +137,10 @@ class EchoStateBO(BO):
                 break
             
             # Convergence
-            print(distance) if self.num_acquisitions % 10 == 0 else None
             if distance <= self.eps: 
                 if self.verbosity:
-                    print('Converged at iteration', self.num_acquisitions)
+                    pass
+                print('Converged at iteration', self.num_acquisitions)
                 break
 
         # Stop messages and execution time   
