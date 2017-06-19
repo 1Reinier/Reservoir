@@ -318,7 +318,7 @@ class EchoStateNetworkCV:
             evaluator = GPyOpt.core.evaluators.sequential.Sequential(acquisition=acquisition, 
                                                                      batch_size=self.batch_size)
         else:
-            evaluator = GPyOpt.core.evaluators.RandomBatch(acquisition=acquisition=,
+            evaluator = GPyOpt.core.evaluators.RandomBatch(acquisition=acquisition,
                                                            batch_size=self.batch_size)
         # Show progress bar
         if self.verbose:
