@@ -168,7 +168,7 @@ class EchoStateBO(BO):
         last = self.X[i, :]
         previous = self.X[i - sample_size, :]  # in Batch mode only the first sample is non-random
         distance = np.linalg.norm(last - previous, ord=1)  # Manhattan distance
-        return difference
+        return distance
     
     def _update_model(self):
         """
