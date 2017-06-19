@@ -136,7 +136,7 @@ class EchoStateBO(BO):
             
             # Convergence
             distance = self._distance_last_evaluations(sample_size)
-            print(distance) if self.num_acquisitions % 10 else None
+            print(distance) if self.num_acquisitions % 10 == 0 else None
             if distance <= self.eps: 
                 if self.verbosity:
                     print('Converged at iteration', self.num_acquisitions)
