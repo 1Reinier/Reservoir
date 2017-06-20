@@ -118,7 +118,7 @@ class EchoStateBO(BO):
             
             # Evaluate *f* in X, augment Y
             Y_new = self.evaluate_objective()
-            self.Y[i: i + sample_size, :] = Y_new
+            self.Y[i: i + allocation, :] = Y_new[: allocation]
             
             # Update current evaluation time and function evaluations
             self.cum_time = time.time() - self.time_zero  
