@@ -64,8 +64,8 @@ class EchoStateBO(BO):
         self.verbosity = verbosity
         
         # Avoid stacking: create full X and Y
-        X_full = np.zeros((max_iter, self.X.shape[1]))
-        Y_full = np.zeros((max_iter, 1))
+        X_full = np.full((max_iter, self.X.shape[1]), fill_value=np.nan, dtype=float)
+        Y_full = np.full((max_iter, 1), fill_value=np.inf, dtype=float)
 
         # Setting up stop conditions
         self.eps = eps 
@@ -111,8 +111,10 @@ class EchoStateBO(BO):
 
             # Augment X
             i = self.num_acquisitions
-            sample_size = self.suggested_sample.shape[0]            
-            self.X[i: i + sample_size, :] = self.suggested_sample
+            sample_size = self.suggested_sample.shape[0]
+            space_left = X.shape[0] - i
+            allocation = np.clip(sample_size, 0, space_left)
+            self.X[i: i + allocation, :] = self.suggested_sample[: allocation]
             
             # Evaluate *f* in X, augment Y
             Y_new = self.evaluate_objective()
@@ -121,7 +123,7 @@ class EchoStateBO(BO):
             # Update current evaluation time and function evaluations
             self.cum_time = time.time() - self.time_zero  
             distance = self._distance_last_evaluations(sample_size)
-            self.num_acquisitions += sample_size
+            self.num_acquisitions += allocation
             
             # Target check
             if np.any(Y_new <= self.target):
