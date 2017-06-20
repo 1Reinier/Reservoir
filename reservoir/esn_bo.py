@@ -121,7 +121,7 @@ class EchoStateBO(BO):
             # Update current evaluation time and function evaluations
             self.cum_time = time.time() - self.time_zero  
             distance = self._distance_last_evaluations(sample_size)
-            self.num_acquisitions += 1
+            self.num_acquisitions += sample_size
             
             # Target check
             if np.any(Y_new <= self.target):
