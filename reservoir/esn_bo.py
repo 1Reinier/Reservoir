@@ -112,7 +112,7 @@ class EchoStateBO(BO):
             # Augment X
             i = self.num_acquisitions
             sample_size = self.suggested_sample.shape[0]
-            space_left = X.shape[0] - i
+            space_left = self.X.shape[0] - i
             allocation = np.clip(sample_size, 0, space_left)
             self.X[i: i + allocation, :] = self.suggested_sample[: allocation]
             
