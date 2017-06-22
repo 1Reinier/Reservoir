@@ -36,9 +36,9 @@ class ClusteringBO(EchoStateNetworkCV):
         
         # Set objective accordingly
         if self.assignment is None:
-            self.objective_sampler = self.k_folds_objective  # Trains
+            self.objective_sampler = self.k_folds_objective  # Multiple readouts
         else:
-            self.objective_sampler = self.clustering_objective  # Gets trained input
+            self.objective_sampler = self.new_clustering_objective  # Weighted clustering objective: 1 readout
 
     def clustering_objective(self, parameters):
         # Get arguments
@@ -47,7 +47,7 @@ class ClusteringBO(EchoStateNetworkCV):
         # Make simple sycle reservoir
         scr = self.model(**arguments)
         
-        # How many series doe we have
+        # How many series do we have
         n_series = self.x.shape[1]
         k_clusters = self.assignment.shape[1]
         
@@ -76,6 +76,41 @@ class ClusteringBO(EchoStateNetworkCV):
             print('Score:', final_score)
             
         return final_score.reshape(-1, 1)
+
+    def new_clustering_objective(self, parameters):
+        """WLS implementation for multiple series, with only 1 readout.
+        
+        Regression is weighted by class memberships.
+        
+        """
+        # Get arguments
+        arguments = self.construct_arguments(parameters)
+        
+        # How many series do we have
+        n_series = self.x.shape[1]
+        k_clusters = self.assignment.shape[1]
+        
+        # Simple check
+        assert n_series == self.y.shape[1]
+        
+        # Placeholder
+        scores = np.full((k_clusters, self.cv_samples), fill_value=np.nan, dtype=float)
+        
+        # Train with multiple series
+        for k in range(k_clusters):
+            # Train simple sycle reservoir
+            scr = self.model(**arguments)
+            scores[k, :] = scr.train_validate_multiple(y=self.y, x=self.x, series_weights=self.assignment[:, k], 
+                                                       folds=self.cv_samples, burn_in=self.burn_in, 
+                                                       scoring_method=self.scoring_method)
+        # Compute final scores
+        mean_score = scores.mean()
+        
+        # Inform user
+        if self.verbose:
+            print('Score:', mean_score)
+            
+        return mean_score.reshape(-1, 1)
         
     def k_folds_objective(self, parameters):
         """Does k-folds on the states for a set of parameters

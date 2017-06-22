@@ -179,7 +179,9 @@ class SimpleCycleReservoir:
         Parameters
         ==========
         y : array
+            Multiple output series
         x : array
+            Multiple input series, belonging only to the series in y with the same index
         series_weights : array
             Array of n_series values, with the weighting of the series toward the regression
             
