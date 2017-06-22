@@ -101,7 +101,7 @@ class ClusteringBO(EchoStateNetworkCV):
             # Train simple sycle reservoir
             scr = self.model(**arguments)
             scores[k, :] = scr.train_validate_multiple(y=self.y, x=self.x, series_weights=self.assignment[:, k], 
-                                                       folds=self.cv_samples, burn_in=self.burn_in, 
+                                                       folds=self.cv_samples, burn_in=self.esn_burn_in, 
                                                        scoring_method=self.scoring_method)
         # Compute final scores
         mean_score = scores.mean()
