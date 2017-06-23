@@ -45,10 +45,13 @@ class SimpleCycleReservoir:
     def generate_reservoir(self):
         """Generates transition weights"""
         # Set reservoir weights
-        self.weights = np.zeros((self.n_nodes, self.n_nodes), dtype=float)
+        self.weights = np.zeros((self.n_nodes, self.n_nodes), dtype=np.float64)
         self.weights[0, -1] = self.cyclic_weight
         for i in range(self.n_nodes - 1):
             self.weights[i + 1, i] = self.cyclic_weight
+        
+        # Ensure type
+        assert self.weights.dtype == np.float64
         
         # Set out to none to indicate untrained ESN
         self.out_weights = None
@@ -69,8 +72,9 @@ class SimpleCycleReservoir:
         random_state = np.random.RandomState(self.seed)
             
         # Set and scale input weights (for memory length and non-linearity)
-        self.in_weights = np.full(shape=(n_nodes, x.shape[1]), fill_value=self.input_weight, dtype=float)
-        self.in_weights *= np.sign(random_state.uniform(low=-1.0, high=1.0, size=self.in_weights.shape)) 
+        self.in_weights = np.full(shape=(n_nodes, x.shape[1]), fill_value=self.input_weight, dtype=np.float64)
+        self.in_weights *= np.sign(random_state.uniform(low=-1.0, high=1.0, 
+                                                        size=self.in_weights.shape)).astype(np.float64) 
         
         # Generate with jit version
         return generate_states_inner_loop(x, self.n_nodes, self.in_weights, self.weights, burn_in)
