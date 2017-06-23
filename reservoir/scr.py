@@ -6,7 +6,7 @@ from numba import jit, float32, intp
 __all__ = ['SimpleCycleReservoir']
 
 
-@jit(float32[:, :](float32[:, :], intp, float32[:, :], float32[:, :], intp), nopython=True, cache=True)
+@jit(float32[:, :](float32[:, :], intp, float32[:, :], float32[:, :], intp), nopython=True, cache=False)
 def generate_states_inner_loop(x, n_nodes, in_weights, weights, burn_in):
     # Calculate correct shape
     rows = x.shape[0]
@@ -117,9 +117,8 @@ class SimpleCycleReservoir:
             # Cholesky solution (fast)
             self.out_weights = np.linalg.solve(ridge_x, ridge_y).reshape(-1, 1)
         except np.linalg.LinAlgError:
-            # Pseudo-inverse solution
-            self.out_weights = (scipy.linalg.pinvh(ridge_x) @ 
-                                ridge_y).reshape(-1, 1)  # Robust solution if ridge_x is singular
+            # Pseudo-inverse solution (robust solution if ridge_x is singular)
+            self.out_weights = (scipy.linalg.pinvh(ridge_x) @ ridge_y).reshape(-1, 1) 
         
         # Return all data for computation or visualization purposes
         return state, y, burn_in
