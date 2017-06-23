@@ -23,7 +23,7 @@ def generate_states_inner_loop(x, n_nodes, in_weights, weights, burn_in):
         previous_state = state[t]
     
     # Add intercept
-    intercept = np.ones(shape=(rows, 1), dtype=state.dtype)
+    intercept = np.ones(shape=(rows, 1), dtype=np.float64)
     state = np.hstack((intercept, state))
     
     return state[burn_in:]
