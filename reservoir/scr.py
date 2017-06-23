@@ -6,6 +6,29 @@ from numba import jit
 __all__ = ['SimpleCycleReservoir']
 
 
+@jit(nopython=True, cache=True)
+def generate_states_inner_loop(n_nodes, in_weights, weights, burn_in):
+    # Calculate correct shape
+    rows = x.shape[0]
+    
+    # Build state matrix
+    state = np.zeros((rows, n_nodes), dtype=float)
+    
+    # Set last state
+    previous_state = state[0]
+    
+    # Train iteratively
+    for t in range(rows):
+        state[t] = np.tanh(in_weights @ x[t] + weights @ previous_state)
+        previous_state = state[t]
+    
+    # Add intercept
+    intercept = np.ones(shape=(rows, 1), dtype=state.dtype)
+    state = np.hstack((intercept, state))
+    
+    return state[burn_in:]
+
+
 class SimpleCycleReservoir:
     
     def __init__(self, n_nodes=30, regularization=1e-8, cyclic_weight=0.5, input_weight=0.5, random_seed=123):
@@ -40,7 +63,6 @@ class SimpleCycleReservoir:
         graph = nx.DiGraph(self.weights)
         nx.draw(graph)
         
-    @jit(nopython=True, cache=True)  # Signature: "array(float64, 2d, C)(array(float64, 1d, C), u8)"
     def generate_states(self, x, burn_in=30):
         """Generates states given some column vector x"""
         # Initialize new random state
@@ -48,27 +70,13 @@ class SimpleCycleReservoir:
         
         # Calculate correct shape
         rows = x.shape[0]
-        
-        # Build state matrix
-        state = np.zeros((rows, self.n_nodes), dtype=float)
             
         # Set and scale input weights (for memory length and non-linearity)
-        self.in_weights = np.full(shape=(self.n_nodes, x.shape[1]), fill_value=self.input_weight, dtype=float)
+        self.in_weights = np.full(shape=(n_nodes, x.shape[1]), fill_value=self.input_weight, dtype=float)
         self.in_weights *= np.sign(random_state.uniform(low=-1.0, high=1.0, size=self.in_weights.shape)) 
         
-        # Set last state
-        previous_state = state[0]
-        
-        # Train iteratively
-        for t in range(rows):
-            state[t] = np.tanh(self.in_weights @ x[t] + self.weights @ previous_state)
-            previous_state = state[t]
-        
-        # Add intercept
-        intercept = np.ones(shape=(rows, 1), dtype=state.dtype)
-        state = np.hstack((intercept, state))
-        
-        return state[burn_in:]
+        # Generate with jit version
+        return generate_states_inner_loop(self.n_nodes, self.in_weights, self.weights, burn_in)
     
     def train(self, y, x, burn_in=30):
         """Trains the Echo State Network.
