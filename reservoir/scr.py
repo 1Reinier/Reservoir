@@ -210,9 +210,15 @@ class SimpleCycleReservoir:
         # Checks
         assert y.shape == x.shape, 'Data matrices not of equal shape'
         
+        print(x.shape)
+        print(y.shape)
+        
         # Set types
         x.dtype = np.float32
         y.dtype = np.float32
+        
+        print(x.shape)
+        print(y.shape)
         
         # Easy retrieval
         t_steps = y.shape[0]
