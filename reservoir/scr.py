@@ -153,7 +153,7 @@ class SimpleCycleReservoir:
             stop_index = start_index + fold_size
             
             # Indices
-            validation_indices = np.arange(start_index, stop_index)
+            validation_indices = np.arange(start_index, stop_index, dtype=np.int)
             
             # Train mask
             train_mask = np.ones(y.shape[0], dtype=bool)
@@ -237,7 +237,7 @@ class SimpleCycleReservoir:
         
         # Shuffle data
         random_state = np.random.RandomState(self.seed + 2)
-        permutation = np.arange(samples)
+        permutation = np.arange(samples, dtype=np.int32)
         random_state.shuffle(permutation)
         shuffled_states = states[permutation]
         shuffled_y = all_y[permutation]
@@ -261,7 +261,7 @@ class SimpleCycleReservoir:
             stop_index = start_index + fold_size
             
             # Indices
-            validation_indices = np.arange(start_index, stop_index)
+            validation_indices = np.arange(start_index, stop_index, dtype=np.int32)
             
             # Train mask
             train_mask = np.ones(samples, dtype=bool)
