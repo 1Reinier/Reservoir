@@ -72,9 +72,11 @@ class SimpleCycleReservoir:
         random_state = np.random.RandomState(self.seed)
             
         # Set and scale input weights (for memory length and non-linearity)
-        self.in_weights = np.full(shape=(n_nodes, x.shape[1]), fill_value=self.input_weight, dtype=np.float64)
-        self.in_weights *= np.sign(random_state.uniform(low=-1.0, high=1.0, 
-                                                        size=self.in_weights.shape)).astype(np.float64) 
+        self.in_weights = np.full(shape=(self.n_nodes, x.shape[1]), fill_value=self.input_weight, 
+                                  dtype=np.float64)
+        self.in_weights *= np.sign(random_state.uniform(low=-1.0, high=1.0, size=self.in_weights.shape))
+        
+        assert self.in_weights.dtype == np.float64
         
         # Generate with jit version
         return generate_states_inner_loop(x, self.n_nodes, self.in_weights, self.weights, burn_in)
