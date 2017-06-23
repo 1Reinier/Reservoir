@@ -251,20 +251,21 @@ class SimpleCycleReservoir:
             train_x = shuffled_states[train_mask]
             train_y = shuffled_y[train_mask]
             masked_weights = shuffled_weights[train_mask]
-            train_weights = np.diag(masked_weights)
+            
+            # Center weights at 1 so to not distort L2 regularizion
+            w = (masked_weights / masked_weights.mean()).reshape(-1, 1)  # Make column vector 
                         
-            # Ridge regression
-            ridge_x = train_x.T @ train_weights @ train_x + self.regularization * np.eye(train_x.shape[1])
-            ridge_y = train_x.T @ train_weights @ train_y 
+            # Weighted Ridge regression
+            ridge_x = train_x.T @ (w * train_x) + self.regularization * np.eye(train_x.shape[1])
+            ridge_y = train_x.T @ (w * train_y)
             
             # Solve for out weights
             try:
                 # Cholesky solution (fast)
                 out_weights = np.linalg.solve(ridge_x, ridge_y).reshape(-1, 1)
             except np.linalg.LinAlgError:
-                # Pseudo-inverse solution
-                out_weights = (scipy.linalg.pinvh(ridge_x) @ 
-                               ridge_y).reshape(-1, 1)  # Robust solution if ridge_x is singular
+                # Pseudo-inverse solution (robust solution if ridge_x is singular)
+                out_weights = (scipy.linalg.pinvh(ridge_x) @ ridge_y).reshape(-1, 1)  
             
             # Validation set
             validation_x = shuffled_states[validation_indices]
@@ -274,7 +275,7 @@ class SimpleCycleReservoir:
             prediction = validation_x @ out_weights
             
             # Save
-            scores[k] = self.error(prediction, validation_y, scoring_method)
+            scores[k] = self.error(prediction[burn_in:], validation_y[burn_in:], scoring_method)
             readouts[:, k] = out_weights.reshape(-1,)
         
         # Return mean validation score
