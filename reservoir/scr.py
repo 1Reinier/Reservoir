@@ -206,8 +206,9 @@ class SimpleCycleReservoir:
         """
         # Checks
         assert y.shape == x.shape, 'Data matrices not of equal shape'
-        assert y.dtype == np.float32
-        assert x.dtype == np.float32
+        if not y.dtype == np.float32:
+            x = x.astype(np.float32)
+            y = y.astype(np.float32)
     
         # Easy retrieval
         t_steps = y.shape[0]
