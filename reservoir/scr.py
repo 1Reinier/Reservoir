@@ -12,7 +12,7 @@ def generate_states_inner_loop(x, n_nodes, in_weights, weights, burn_in):
     rows = x.shape[0]
     
     # Build state matrix
-    state = np.zeros((rows, n_nodes), dtype=float)
+    state = np.zeros((rows, n_nodes), dtype=np.float64)
     
     # Set last state
     previous_state = state[0]
