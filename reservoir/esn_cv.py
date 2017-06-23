@@ -280,8 +280,8 @@ class EchoStateNetworkCV:
         self.random_state = np.random.RandomState(self.seed + 2)
         
         # Temporarily store the data
-        self.x = x
-        self.y = y
+        self.x = x.astype(np.float32)
+        self.y = y.astype(np.float32)
         
         # Inform user    
         if self.verbose:

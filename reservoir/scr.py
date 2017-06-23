@@ -69,9 +69,6 @@ class SimpleCycleReservoir:
         self.in_weights = np.full(shape=(self.n_nodes, x.shape[1]), fill_value=self.input_weight, 
                                   dtype=np.float32)
         self.in_weights *= np.sign(random_state.uniform(low=-1.0, high=1.0, size=self.in_weights.shape))
-        
-        # Set type
-        x.dtype = np.float32
                 
         # Generate with jit version
         return generate_states_inner_loop(x, self.n_nodes, self.in_weights, self.weights, burn_in)
@@ -101,8 +98,8 @@ class SimpleCycleReservoir:
         
         """
         # Set types
-        x.dtype = np.float32
-        y.dtype = np.float32
+        x = x.astype(np.float32)
+        y = y.astype(np.float32)
         
         # Get states
         state = self.generate_states(x, burn_in=burn_in)
@@ -129,8 +126,8 @@ class SimpleCycleReservoir:
     def validation_score(self, y, x, folds=5, scoring_method='L2', burn_in=30):
         """Trains and gives k-folds validation score"""
         # Set types
-        x.dtype = np.float32
-        y.dtype = np.float32
+        x = x.astype(np.float32, copy=False)
+        y = y.astype(np.float32, copy=False)
         
         # Get states
         state = self.generate_states(x, burn_in=burn_in)
@@ -209,17 +206,9 @@ class SimpleCycleReservoir:
         """
         # Checks
         assert y.shape == x.shape, 'Data matrices not of equal shape'
-        
-        print(x.shape)
-        print(y.shape)
-        
-        # Set types
-        x.dtype = np.float32
-        y.dtype = np.float32
-        
-        print(x.shape)
-        print(y.shape)
-        
+        assert y.dtype == np.float32
+        assert x.dtype == np.float32
+    
         # Easy retrieval
         t_steps = y.shape[0]
         n_series = y.shape[1]
@@ -244,23 +233,11 @@ class SimpleCycleReservoir:
         # Shuffle data
         random_state = np.random.RandomState(self.seed + 2)
         permutation = np.arange(samples, dtype=np.int32)
-        random_state.shuffle(permutation)
-        
-        print('Perm shape:', permutation.shape, 'samples', samples)
-        print('States:', states.shape)
-        print('all_y:', all_y.shape)
-        print('weights', sample_weights.shape)
-        
+        random_state.shuffle(permutation)    
         shuffled_states = states[permutation]
-        shuffled_y = all_y[permutation]
-        
-        print('shuff states:', shuffled_states.shape)
-        print('suff_y:', shuffled_y.shape)
-        
+        shuffled_y = all_y[permutation]        
         shuffled_weights = sample_weights[permutation]
-        
-        raise KeyboardInterrupt
-        
+                
         # Placeholders
         scores = np.zeros(folds, dtype=np.float32)
         readouts = np.zeros((self.n_nodes + 1, folds), dtype=np.float32)
@@ -342,10 +319,6 @@ class SimpleCycleReservoir:
             Error between prediction and known outputs
         
         """
-        # Set types
-        x.dtype = np.float32
-        y.dtype = np.float32
-        
         # Run prediction
         y_predicted = self.predict_stepwise(x, out_weights=out_weights)
         
@@ -371,9 +344,6 @@ class SimpleCycleReservoir:
             Array of predictions at every time step of shape (times, steps_ahead)
         
         """
-        # Set types
-        x.dtype = np.float32
-
         # Check if ESN has been trained
         if self.out_weights is None and out_weights is None:
             raise ValueError('Error: Train model or provide out_weights')
