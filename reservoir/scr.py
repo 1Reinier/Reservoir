@@ -40,7 +40,7 @@ class SimpleCycleReservoir:
         graph = nx.DiGraph(self.weights)
         nx.draw(graph)
         
-    @jit('array(float64, 2d, C)(array(float64, 1d, C), u8)', nopython=True, cache=True)
+    @jit(nopython=True, cache=True)  # Signature: "array(float64, 2d, C)(array(float64, 1d, C), u8)"
     def generate_states(self, x, burn_in=30):
         """Generates states given some column vector x"""
         # Initialize new random state
