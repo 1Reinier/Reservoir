@@ -6,8 +6,8 @@ from numba import jit, int_, float_
 __all__ = ['SimpleCycleReservoir']
 
 
-@jit(float_[:, :](int_, float_[:, :], float_[:, :], int_), nopython=True, cache=True)
-def generate_states_inner_loop(n_nodes, in_weights, weights, burn_in):
+@jit(float_[:, :](float_[:, :], int_, float_[:, :], float_[:, :], int_), nopython=True, cache=True)
+def generate_states_inner_loop(x, n_nodes, in_weights, weights, burn_in):
     # Calculate correct shape
     rows = x.shape[0]
     
@@ -67,16 +67,13 @@ class SimpleCycleReservoir:
         """Generates states given some column vector x"""
         # Initialize new random state
         random_state = np.random.RandomState(self.seed)
-        
-        # Calculate correct shape
-        rows = x.shape[0]
             
         # Set and scale input weights (for memory length and non-linearity)
         self.in_weights = np.full(shape=(n_nodes, x.shape[1]), fill_value=self.input_weight, dtype=float)
         self.in_weights *= np.sign(random_state.uniform(low=-1.0, high=1.0, size=self.in_weights.shape)) 
         
         # Generate with jit version
-        return generate_states_inner_loop(self.n_nodes, self.in_weights, self.weights, burn_in)
+        return generate_states_inner_loop(x, self.n_nodes, self.in_weights, self.weights, burn_in)
     
     def train(self, y, x, burn_in=30):
         """Trains the Echo State Network.
