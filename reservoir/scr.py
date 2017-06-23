@@ -239,9 +239,21 @@ class SimpleCycleReservoir:
         random_state = np.random.RandomState(self.seed + 2)
         permutation = np.arange(samples, dtype=np.int32)
         random_state.shuffle(permutation)
+        
+        print('Perm shape:', permutation.shape, 'samples', samples)
+        print('States:', states.shape)
+        print('all_y:', all_y.shape)
+        print('weights', sample_weights.shape)
+        
         shuffled_states = states[permutation]
         shuffled_y = all_y[permutation]
+        
+        print('shuff states:', shuffled_states.shape)
+        print('suff_y:', shuffled_y.shape)
+        
         shuffled_weights = sample_weights[permutation]
+        
+        raise KeyboardInterrupt
         
         # Placeholders
         scores = np.zeros(folds, dtype=np.float32)
