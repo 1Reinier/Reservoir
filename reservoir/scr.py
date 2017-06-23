@@ -1,18 +1,18 @@
 import numpy as np
 import scipy
-from numba import jit, float64, intp
+from numba import jit, float32, intp
 
 
 __all__ = ['SimpleCycleReservoir']
 
 
-# @jit(float64[:, :](float64[:, :], intp, float64[:, :], float64[:, :], intp), nopython=True, cache=True)
+# @jit(float32[:, :](float32[:, :], intp, float32[:, :], float32[:, :], intp), nopython=True, cache=True)
 def generate_states_inner_loop(x, n_nodes, in_weights, weights, burn_in):
     # Calculate correct shape
     rows = x.shape[0]
     
     # Build state matrix
-    state = np.zeros((rows, n_nodes + 1), dtype=np.float64)
+    state = np.zeros((rows, n_nodes + 1), dtype=np.float32)
     state[:, 0] = 1.  # Intercept
     
     # Set last state
@@ -42,13 +42,13 @@ class SimpleCycleReservoir:
     def generate_reservoir(self):
         """Generates transition weights"""
         # Set reservoir weights
-        self.weights = np.zeros((self.n_nodes, self.n_nodes), dtype=np.float64)
+        self.weights = np.zeros((self.n_nodes, self.n_nodes), dtype=np.float32)
         self.weights[0, -1] = self.cyclic_weight
         for i in range(self.n_nodes - 1):
             self.weights[i + 1, i] = self.cyclic_weight
         
         # Ensure type
-        assert self.weights.dtype == np.float64
+        assert self.weights.dtype == np.float32
         
         # Set out to none to indicate untrained ESN
         self.out_weights = None
@@ -70,10 +70,10 @@ class SimpleCycleReservoir:
             
         # Set and scale input weights (for memory length and non-linearity)
         self.in_weights = np.full(shape=(self.n_nodes, x.shape[1]), fill_value=self.input_weight, 
-                                  dtype=np.float64)
+                                  dtype=np.float32)
         self.in_weights *= np.sign(random_state.uniform(low=-1.0, high=1.0, size=self.in_weights.shape))
         
-        assert self.in_weights.dtype == np.float64
+        assert self.in_weights.dtype == np.float32
         
         # Generate with jit version
         return generate_states_inner_loop(x, self.n_nodes, self.in_weights, self.weights, burn_in)
@@ -109,7 +109,7 @@ class SimpleCycleReservoir:
         train_y = y[burn_in:]  # Include everything after burn_in
         
         # Ridge regression
-        ridge_x = train_x.T @ train_x + self.regularization * np.eye(train_x.shape[1], dtype=float)
+        ridge_x = train_x.T @ train_x + self.regularization * np.eye(train_x.shape[1], dtype=np.float32)
         ridge_y = train_x.T @ train_y 
         
         # Solve for out weights
@@ -211,8 +211,8 @@ class SimpleCycleReservoir:
         samples = effective_length * n_series
         
         # Concatenate all states
-        states = np.zeros((samples, self.n_nodes + 1), dtype=float)  # Add one column for intercept
-        all_y = np.zeros((samples, 1), dtype=float)
+        states = np.zeros((samples, self.n_nodes + 1), dtype=np.float32)  # Add one column for intercept
+        all_y = np.zeros((samples, 1), dtype=np.float32)
         for n, start_index in enumerate(range(0, samples, effective_length)):
             
             # Get states
