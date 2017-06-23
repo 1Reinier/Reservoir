@@ -1,5 +1,6 @@
 import numpy as np
 import scipy
+from numba import jit
 
 
 __all__ = ['SimpleCycleReservoir']
@@ -39,6 +40,7 @@ class SimpleCycleReservoir:
         graph = nx.DiGraph(self.weights)
         nx.draw(graph)
         
+    @jit('array(float64, 2d, C)(array(float64, 1d, C), u8)', nopython=True, cache=True)
     def generate_states(self, x, burn_in=30):
         """Generates states given some column vector x"""
         # Initialize new random state
