@@ -6,7 +6,7 @@ from numba import jit, float64, intp
 __all__ = ['SimpleCycleReservoir']
 
 
-@jit(float64[:, :](float64[:, :], intp, float64[:, :], float64[:, :], intp), nopython=True, cache=True)
+# @jit(float64[:, :](float64[:, :], intp, float64[:, :], float64[:, :], intp), nopython=True, cache=True)
 def generate_states_inner_loop(x, n_nodes, in_weights, weights, burn_in):
     # Calculate correct shape
     rows = x.shape[0]
