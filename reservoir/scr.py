@@ -46,10 +46,7 @@ class SimpleCycleReservoir:
         self.weights[0, -1] = self.cyclic_weight
         for i in range(self.n_nodes - 1):
             self.weights[i + 1, i] = self.cyclic_weight
-        
-        # Ensure type
-        assert self.weights.dtype == np.float32
-        
+                
         # Set out to none to indicate untrained ESN
         self.out_weights = None
     
@@ -73,8 +70,9 @@ class SimpleCycleReservoir:
                                   dtype=np.float32)
         self.in_weights *= np.sign(random_state.uniform(low=-1.0, high=1.0, size=self.in_weights.shape))
         
-        assert self.in_weights.dtype == np.float32
-        
+        # Set type
+        x.dtype = np.float32
+                
         # Generate with jit version
         return generate_states_inner_loop(x, self.n_nodes, self.in_weights, self.weights, burn_in)
     
@@ -101,7 +99,12 @@ class SimpleCycleReservoir:
             These data can be used for diagnostic purposes (e.g. vizualization of activations), or for
             cross-validation.
         
-        """    
+        """
+        # Set types
+        x.dtype = np.float32
+        y.dtype = np.float32
+        
+        # Get states
         state = self.generate_states(x, burn_in=burn_in)
         
         # Concatenate inputs with node states
@@ -125,6 +128,10 @@ class SimpleCycleReservoir:
         
     def validation_score(self, y, x, folds=5, scoring_method='L2', burn_in=30):
         """Trains and gives k-folds validation score"""
+        # Set types
+        x.dtype = np.float32
+        y.dtype = np.float32
+        
         # Get states
         state = self.generate_states(x, burn_in=burn_in)
                 
@@ -202,6 +209,10 @@ class SimpleCycleReservoir:
         """
         # Checks
         assert y.shape == x.shape, 'Data matrices not of equal shape'
+        
+        # Set types
+        x.dtype = np.float32
+        y.dtype = np.float32
         
         # Easy retrieval
         t_steps = y.shape[0]
@@ -313,6 +324,10 @@ class SimpleCycleReservoir:
             Error between prediction and known outputs
         
         """
+        # Set types
+        x.dtype = np.float32
+        y.dtype = np.float32
+        
         # Run prediction
         y_predicted = self.predict_stepwise(x, out_weights=out_weights)
         
@@ -338,6 +353,9 @@ class SimpleCycleReservoir:
             Array of predictions at every time step of shape (times, steps_ahead)
         
         """
+        # Set types
+        x.dtype = np.float32
+
         # Check if ESN has been trained
         if self.out_weights is None and out_weights is None:
             raise ValueError('Error: Train model or provide out_weights')
