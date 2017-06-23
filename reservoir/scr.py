@@ -1,12 +1,12 @@
 import numpy as np
 import scipy
-from numba import jit, float32, intp
+from numba import jit, float32, int32
 
 
 __all__ = ['SimpleCycleReservoir']
 
 
-@jit(float32[:, :](float32[:, :], intp, float32[:, :], float32[:, :], intp), nopython=True, cache=False)
+@jit(float32[:, :](float32[:, :], int32, float32[:, :], float32[:, :], int32), nopython=True, cache=False)
 def generate_states_inner_loop(x, n_nodes, in_weights, weights, burn_in):
     # Calculate correct shape
     rows = x.shape[0]
