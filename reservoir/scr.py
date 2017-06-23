@@ -1,12 +1,12 @@
 import numpy as np
 import scipy
-from numba import jit, int_, float_
+from numba import jit, float64, intp
 
 
 __all__ = ['SimpleCycleReservoir']
 
 
-@jit(float_[:, :](float_[:, :], int_, float_[:, :], float_[:, :], int_), nopython=True, cache=True)
+@jit(float64[:, :](float64[:, :], intp, float64[:, :], float64[:, :], intp), nopython=True, cache=True)
 def generate_states_inner_loop(x, n_nodes, in_weights, weights, burn_in):
     # Calculate correct shape
     rows = x.shape[0]
@@ -330,8 +330,7 @@ class SimpleCycleReservoir:
         Parameters
         ----------
         x : numpy array or None
-            If prediciton requires inputs, provide them here. If y has T time samples, x should have at least T + N - 1,
-            time samples for N step ahead prediction, otherwise some step ahead predictions may be undefined (NaN)
+            Prediction inputs
         out_weights : numpy array (2D column vector)
             The weights to use for prediction. Overrides any trained weights stored on the object.
         
