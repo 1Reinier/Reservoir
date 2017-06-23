@@ -153,7 +153,7 @@ class SimpleCycleReservoir:
             stop_index = start_index + fold_size
             
             # Indices
-            validation_indices = np.arange(start_index, stop_index, dtype=np.int)
+            validation_indices = np.arange(start_index, stop_index, dtype=np.int32)
             
             # Train mask
             train_mask = np.ones(y.shape[0], dtype=bool)
