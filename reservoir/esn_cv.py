@@ -432,7 +432,7 @@ class EchoStateNetworkCV:
         train_length = self.subsequence_length - validate_length
         
         # Score storage
-        scores = np.zeros((self.cv_samples, n_series))
+        scores = np.zeros((self.cv_samples, n_series), dtype=np.float32)
         
         # Get samples
         for i in range(self.cv_samples):  # TODO: Can be parallelized

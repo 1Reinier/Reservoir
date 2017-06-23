@@ -64,8 +64,8 @@ class EchoStateBO(BO):
         self.verbosity = verbosity
         
         # Avoid stacking: create full X and Y
-        X_full = np.full((max_iter, self.X.shape[1]), fill_value=np.nan, dtype=float)
-        Y_full = np.full((max_iter, 1), fill_value=np.inf, dtype=float)
+        X_full = np.full((max_iter, self.X.shape[1]), fill_value=np.nan, dtype=np.float32)
+        Y_full = np.full((max_iter, 1), fill_value=np.inf, dtype=np.float32)
 
         # Setting up stop conditions
         self.eps = eps 

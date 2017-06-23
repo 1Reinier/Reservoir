@@ -86,7 +86,7 @@ class EchoStateNetwork:
         self.weights *= self.spectral_radius / max_eigenvalue
         
         # Default state
-        self.state = np.zeros((1, self.n_nodes))
+        self.state = np.zeros((1, self.n_nodes), dtype=np.float32)
         
         # Set out to none to indicate untrained ESN
         self.out_weights = None
@@ -225,10 +225,10 @@ class EchoStateNetwork:
         rows = y.shape[0] - start_index
         
         # Build state matrix
-        self.state = np.zeros((rows, self.n_nodes))
+        self.state = np.zeros((rows, self.n_nodes), dtype=np.float32)
         
         # Build inputs
-        inputs = np.ones((rows, 1))  # Add bias for all t = 0, ..., T
+        inputs = np.ones((rows, 1), dtype=np.float32)  # Add bias for all t = 0, ..., T
                 
         # Add data inputs if present
         if not x is None:
@@ -333,7 +333,7 @@ class EchoStateNetwork:
             x = self.normalize(inputs=x)
             
         # Initialize input
-        inputs = np.ones((n_steps, 1))  # Add bias term
+        inputs = np.ones((n_steps, 1), dtype=np.float32)  # Add bias term
         
         # Choose correct input
         if x is None and not self.feedback:
@@ -342,7 +342,7 @@ class EchoStateNetwork:
             inputs = np.hstack((inputs, x))  # Add data inputs
         
         # Set parameters
-        y_predicted = np.zeros(n_steps)
+        y_predicted = np.zeros(n_steps, dtype=np.float32)
         
         # Get last states
         previous_y = self.y_last
@@ -416,17 +416,17 @@ class EchoStateNetwork:
             raise ValueError("Error: cannot run without feedback and without x. Enable feedback or supply x")
         elif not x is None:
             # Initialize input
-            inputs = np.ones((t_steps, 1))  # Add bias term
+            inputs = np.ones((t_steps, 1), dtype=np.float32)  # Add bias term
             inputs = np.hstack((inputs, x))  # Add x inputs
         else:
             # x is None
-            inputs = np.ones((t_steps + steps_ahead, 1))  # Add bias term
+            inputs = np.ones((t_steps + steps_ahead, 1), dtype=np.float32)  # Add bias term
             
         # Run until we have no further inputs
         time_length = t_steps if x is None else t_steps - steps_ahead + 1
         
         # Set parameters
-        y_predicted = np.zeros((time_length, steps_ahead))
+        y_predicted = np.zeros((time_length, steps_ahead), dtype=np.float32)
         
         # Get last states
         previous_y = self.y_last
@@ -512,7 +512,7 @@ class EchoStateNetwork:
             errors = predicted.ravel() - target.ravel()
         else:
             # Multiple prediction columns
-            errors = np.zeros(predicted.shape)
+            errors = np.zeros(predicted.shape, dtype=np.float32)
             for i in steps_ahead:
                 predictions = predicted[:, i]
                 errors[:, i] = predictions.ravel()[:-i] - target.ravel()[i:]

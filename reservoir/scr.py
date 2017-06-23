@@ -130,7 +130,7 @@ class SimpleCycleReservoir:
         state = self.generate_states(x, burn_in=burn_in)
                 
         # Placeholder
-        scores = np.zeros(folds, dtype=float)
+        scores = np.zeros(folds, dtype=np.float32)
         
         # Get y
         y = y[burn_in:]
@@ -234,8 +234,8 @@ class SimpleCycleReservoir:
         shuffled_weights = sample_weights[permutation]
         
         # Placeholders
-        scores = np.zeros(folds, dtype=float)
-        readouts = np.zeros((self.n_nodes + 1, folds), dtype=float)
+        scores = np.zeros(folds, dtype=np.float32)
+        readouts = np.zeros((self.n_nodes + 1, folds), dtype=np.float32)
         
         # Fold size
         fold_size = samples // folds

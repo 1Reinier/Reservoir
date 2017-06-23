@@ -55,7 +55,7 @@ class ClusteringBO(EchoStateNetworkCV):
         assert n_series == self.y.shape[1]
         
         # Placeholder
-        scores = np.zeros((n_series, k_clusters), dtype=float)
+        scores = np.zeros((n_series, k_clusters), dtype=np.float32)
         
         # Generate error for every series
         for n in range(n_series):
@@ -94,7 +94,7 @@ class ClusteringBO(EchoStateNetworkCV):
         assert n_series == self.y.shape[1]
         
         # Placeholder
-        scores = np.full((k_clusters, self.cv_samples), fill_value=np.nan, dtype=float)
+        scores = np.full((k_clusters, self.cv_samples), fill_value=np.nan, dtype=np.float32)
         
         # Train with multiple series
         for k in range(k_clusters):
@@ -142,7 +142,7 @@ class ClusteringBO(EchoStateNetworkCV):
         n_series = y_all.shape[1]
         
         # Score placeholder
-        scores = np.zeros(n_series, dtype=float)
+        scores = np.zeros(n_series, dtype=np.float32)
     
         for n in range(n_series):
             y = y_all[:, n].reshape(-1, 1)
