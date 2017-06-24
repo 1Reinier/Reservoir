@@ -15,7 +15,7 @@ def generate_states_inner_loop(x, n_nodes, in_weights, weights, burn_in):
     # state = np.zeros((rows, n_nodes + 1), dtype=np.float32)
     
     # Precomute inputs
-    state = x @ in_weights
+    state = x @ in_weights  # CHECK!
     
     # Set last state
     previous_state = np.zeros(n_nodes, dtype=np.float32)
@@ -24,7 +24,7 @@ def generate_states_inner_loop(x, n_nodes, in_weights, weights, burn_in):
     for t in range(rows):
         state[t] += weights @ previous_state
         state[t] = np.tanh(state[t])
-        previous_state = state[t - 1]
+        previous_state = state[t]
     
     # Add intecept
     state = np.hstack((np.ones((rows, 1), dtype=np.float32), state))
