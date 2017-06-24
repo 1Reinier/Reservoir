@@ -303,7 +303,7 @@ class SimpleCycleReservoir:
             readouts[:, k] = out_weights.reshape(-1,)
         
         # Return mean validation score
-        self.out_weights = out_weights.mean(axis=1)
+        self.out_weights = readouts.mean(axis=1)
         return scores
             
     def test(self, y, x, out_weights=None, scoring_method='L2', burn_in=30, alpha=1., **kwargs):
