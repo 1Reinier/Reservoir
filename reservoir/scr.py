@@ -303,8 +303,11 @@ class SimpleCycleReservoir:
             scores[k] = self.error(prediction[burn_in:], validation_y[burn_in:], scoring_method)
             readouts[:, k] = out_weights.reshape(-1,)
         
-        # Return mean validation score
-        self.out_weights = readouts.mean(axis=1)
+        # Set weights to best
+        best_index = np.argmin(scores)
+        self.out_weights = readouts[:, best_index]
+        
+        # Return validation scores
         return scores
             
     def test(self, y, x, out_weights=None, scoring_method='L2', burn_in=30, alpha=1., **kwargs):
