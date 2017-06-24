@@ -15,10 +15,10 @@ def generate_states_inner_loop(x, n_nodes, in_weights, weights, burn_in):
     # state = np.zeros((rows, n_nodes + 1), dtype=np.float32)
     
     # Precomute inputs
-    state = in_weights @ x
+    state = x @ in_weights
     
     # Set last state
-    previous_state = np.zeros((1, n_nodes), dtype=np.float32)
+    previous_state = np.zeros(n_nodes, dtype=np.float32)
     
     # Train iteratively
     for t in range(rows):
@@ -74,7 +74,7 @@ class SimpleCycleReservoir:
         random_state = np.random.RandomState(self.seed)
             
         # Set and scale input weights (for memory length and non-linearity)
-        self.in_weights = np.full(shape=(self.n_nodes, x.shape[1]), fill_value=self.input_weight, 
+        self.in_weights = np.full(shape=(x.shape[1], self.n_nodes), fill_value=self.input_weight, 
                                   dtype=np.float32)
         self.in_weights *= np.sign(random_state.uniform(low=-1.0, high=1.0, size=self.in_weights.shape))
                 
