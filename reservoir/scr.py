@@ -24,7 +24,7 @@ def generate_states_inner_loop(x, n_nodes, in_weights, weights, burn_in):
         state[t, 1:] = np.tanh(in_weights @ x[t] + weights @ state[t - 1, 1:])
         # previous_state = state[t, 1:]
     
-    return state[burn_in + 1:]
+    return state[burn_in:]
 
 
 class SimpleCycleReservoir:
