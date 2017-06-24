@@ -9,7 +9,7 @@ __all__ = ['SimpleCycleReservoir']
 @jit(nopython=True, cache=True)
 def generate_states_inner_loop(x, n_nodes, in_weights, weights, burn_in):
     # Calculate correct shape
-    # rows = x.shape[0]
+    rows = x.shape[0]
     
     # Build state matrix
     # state = np.zeros((rows, n_nodes + 1), dtype=np.float32)
