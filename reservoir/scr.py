@@ -60,7 +60,8 @@ class SimpleCycleReservoir:
         import networkx as nx
         graph = nx.DiGraph(self.weights)
         nx.draw(graph)
-        
+    
+    @jit(cache=True)    
     def generate_states(self, x, burn_in=30):
         """Generates states given some column vector x"""
         # Initialize new random state
@@ -74,6 +75,7 @@ class SimpleCycleReservoir:
         # Generate with jit version
         return generate_states_inner_loop(x, self.n_nodes, self.in_weights, self.weights, burn_in)
     
+    @jit(cache=True)
     def train(self, y, x, burn_in=30):
         """Trains the Echo State Network.
 
@@ -117,16 +119,17 @@ class SimpleCycleReservoir:
         ridge_y = train_x.T @ train_y 
         
         # Solve for out weights
-        try:
-            # Cholesky solution (fast)
-            self.out_weights = np.linalg.solve(ridge_x, ridge_y).reshape(-1, 1)
-        except np.linalg.LinAlgError:
-            # Pseudo-inverse solution (robust solution if ridge_x is singular)
-            self.out_weights = (scipy.linalg.pinvh(ridge_x) @ ridge_y).reshape(-1, 1) 
+        # try:
+        # Cholesky solution (fast)
+        self.out_weights = np.linalg.solve(ridge_x, ridge_y).reshape(-1, 1)
+        # except np.linalg.LinAlgError:
+        #     # Pseudo-inverse solution (robust solution if ridge_x is singular)
+        #     self.out_weights = (scipy.linalg.pinvh(ridge_x) @ ridge_y).reshape(-1, 1) 
         
         # Return all data for computation or visualization purposes
         return state, y, burn_in
         
+    @jit(cache=True)    
     def validation_score(self, y, x, folds=5, scoring_method='L2', burn_in=30):
         """Trains and gives k-folds validation score"""
         # Set types
@@ -169,13 +172,13 @@ class SimpleCycleReservoir:
             ridge_y = train_x.T @ train_y 
             
             # Solve for out weights
-            try:
-                # Cholesky solution (fast)
-                out_weights = np.linalg.solve(ridge_x, ridge_y).reshape(-1, 1)
-            except np.linalg.LinAlgError:
-                # Pseudo-inverse solution
-                out_weights = (scipy.linalg.pinvh(ridge_x) @ 
-                               ridge_y).reshape(-1, 1)  # Robust solution if ridge_x is singular
+            # try:
+            # Cholesky solution (fast)
+            out_weights = np.linalg.solve(ridge_x, ridge_y).reshape(-1, 1)
+            # except np.linalg.LinAlgError:
+            #     # Pseudo-inverse solution
+            #     out_weights = (scipy.linalg.pinvh(ridge_x) @ 
+            #                    ridge_y).reshape(-1, 1)  # Robust solution if ridge_x is singular
             
             # Validation set
             validation_x = state[validation_indices]
