@@ -96,7 +96,7 @@ class EchoStateNetworkCV:
         self.scoring_method = scoring_method
         self.log_space = log_space
         self.alpha = tanh_alpha
-        self.esn_burn_in = esn_burn_in
+        self.esn_burn_in = np.int32(esn_burn_in)
         self.acquisition_type = acquisition_type
         self.max_time = max_time
         self.n_jobs = n_jobs

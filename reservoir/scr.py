@@ -30,10 +30,10 @@ class SimpleCycleReservoir:
     
     def __init__(self, n_nodes=30, regularization=1e-8, cyclic_weight=0.5, input_weight=0.5, random_seed=123):
         # Save attributes
-        self.n_nodes = int(np.round(n_nodes))
-        self.regularization = regularization
-        self.cyclic_weight = cyclic_weight
-        self.input_weight = input_weight
+        self.n_nodes = np.int32(np.round(n_nodes))
+        self.regularization = np.float32(regularization)
+        self.cyclic_weight = np.float32(cyclic_weight)
+        self.input_weight = np.float32(input_weight)
         self.seed = random_seed
         
         # Generate reservoir
@@ -98,8 +98,11 @@ class SimpleCycleReservoir:
         
         """
         # Set types
-        x = x.astype(np.float32)
-        y = y.astype(np.float32)
+        if not (y.dtype == np.float32 and x.dtype == np.float32):
+            x = x.astype(np.float32)
+            y = y.astype(np.float32)
+        
+        burn_in = np.int32(burn_in)
         
         # Get states
         state = self.generate_states(x, burn_in=burn_in)
@@ -130,7 +133,7 @@ class SimpleCycleReservoir:
         y = y.astype(np.float32, copy=False)
         
         # Get states
-        state = self.generate_states(x, burn_in=burn_in)
+        state = self.generate_states(x, burn_in=np.int32(burn_in))
                 
         # Placeholder
         scores = np.zeros(folds, dtype=np.float32)
@@ -206,9 +209,11 @@ class SimpleCycleReservoir:
         """
         # Checks
         assert y.shape == x.shape, 'Data matrices not of equal shape'
-        if not y.dtype == np.float32:
+        if (y.dtype == np.float32 and x.dtype == np.float32):
             x = x.astype(np.float32)
             y = y.astype(np.float32)
+        
+        burn_in = np.int32(burn_in)
     
         # Easy retrieval
         t_steps = y.shape[0]
@@ -320,6 +325,10 @@ class SimpleCycleReservoir:
             Error between prediction and known outputs
         
         """
+        if not (y.dtype == np.float32 and x.dtype == np.float32):
+            x = x.astype(np.float32)
+            y = y.astype(np.float32)
+            
         # Run prediction
         y_predicted = self.predict_stepwise(x, out_weights=out_weights)
         
@@ -350,7 +359,7 @@ class SimpleCycleReservoir:
             raise ValueError('Error: Train model or provide out_weights')
         
         # Get states
-        state = self.generate_states(x, burn_in=0)
+        state = self.generate_states(x, burn_in=np.int32(0))
         
         # Select weights
         if not out_weights is None:
