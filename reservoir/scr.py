@@ -284,12 +284,12 @@ class SimpleCycleReservoir:
             ridge_y = train_x.T @ (w * train_y)
             
             # Solve for out weights
-            try:
-                # Cholesky solution (fast)
-                out_weights = np.linalg.solve(ridge_x, ridge_y).reshape(-1, 1)
-            except np.linalg.LinAlgError:
-                # Pseudo-inverse solution (robust solution if ridge_x is singular)
-                out_weights = (scipy.linalg.pinvh(ridge_x) @ ridge_y).reshape(-1, 1)  
+            # try:
+            # Cholesky solution (fast)
+            out_weights = np.linalg.solve(ridge_x, ridge_y).reshape(-1, 1)
+            # except np.linalg.LinAlgError:
+            #     # Pseudo-inverse solution (robust solution if ridge_x is singular)
+            #     out_weights = (scipy.linalg.pinvh(ridge_x) @ ridge_y).reshape(-1, 1)  
             
             # Validation set
             validation_x = shuffled_states[validation_indices]
