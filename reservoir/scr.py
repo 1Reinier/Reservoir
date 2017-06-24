@@ -27,7 +27,7 @@ def generate_states_inner_loop(x, n_nodes, in_weights, weights, burn_in):
         previous_state = state[t - 1]
     
     # Add intecept
-    state = np.hstack((1., state))
+    state = np.hstack((np.ones((rows, 1), dtype=np.float32), state))
     
     # Return
     return state[burn_in:]
