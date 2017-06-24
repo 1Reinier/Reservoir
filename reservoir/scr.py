@@ -23,7 +23,7 @@ def generate_states_inner_loop(x, n_nodes, in_weights, weights, burn_in):
     # Train iteratively
     for t in range(rows):
         state[t] += weights @ previous_state
-        state[t] = tanh(state[t])
+        state[t] = np.tanh(state[t])
         previous_state = state[t - 1]
     
     # Add intecept
