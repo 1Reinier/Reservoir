@@ -209,9 +209,11 @@ class SimpleCycleReservoir:
         """
         # Checks
         assert y.shape == x.shape, 'Data matrices not of equal shape'
-        if (y.dtype == np.float32 and x.dtype == np.float32):
-            x = x.astype(np.float32)
+        if not y.dtype == np.float32:
             y = y.astype(np.float32)
+
+        if not x.dtype == np.float32:
+            x = x.astype(np.float32)
         
         burn_in = np.int32(burn_in)
     
@@ -325,9 +327,11 @@ class SimpleCycleReservoir:
             Error between prediction and known outputs
         
         """
-        if not (y.dtype == np.float32 and x.dtype == np.float32):
-            x = x.astype(np.float32)
+        if not y.dtype == np.float32:
             y = y.astype(np.float32)
+
+        if not x.dtype == np.float32:
+            x = x.astype(np.float32)
             
         # Run prediction
         y_predicted = self.predict_stepwise(x, out_weights=out_weights)
