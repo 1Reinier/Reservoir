@@ -9,20 +9,27 @@ __all__ = ['SimpleCycleReservoir']
 @jit(nopython=True, cache=True)
 def generate_states_inner_loop(x, n_nodes, in_weights, weights, burn_in):
     # Calculate correct shape
-    rows = x.shape[0]
+    # rows = x.shape[0]
     
     # Build state matrix
-    state = np.zeros((rows, n_nodes + 1), dtype=np.float32)
-    state[:, 0] = 1.  # Intercept
+    # state = np.zeros((rows, n_nodes + 1), dtype=np.float32)
+    
+    # Precomute inputs
+    state = in_weights @ x
     
     # Set last state
-    # previous_state = state[0, 1:]
+    previous_state = np.zeros((1, n_nodes), dtype=np.float32)
     
     # Train iteratively
     for t in range(rows):
-        state[t, 1:] = np.tanh(in_weights @ x[t] + weights @ state[t - 1, 1:])
-        # previous_state = state[t, 1:]
+        state[t] += weights @ previous_state
+        state[t] = tanh(state[t])
+        previous_state = state[t - 1]
     
+    # Add intecept
+    state = np.hstack((1., state))
+    
+    # Return
     return state[burn_in:]
 
 
