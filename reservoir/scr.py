@@ -253,7 +253,8 @@ class SimpleCycleReservoir:
             
         # Series weights
         sample_weights = series_weights.repeat(effective_length)
-        
+        scores = np.full(folds, np.nan, dtype=np.float32)
+
         if not skip_folds:
             # Shuffle data
             random_state = np.random.RandomState(self.seed + 2)
@@ -264,7 +265,6 @@ class SimpleCycleReservoir:
             shuffled_weights = sample_weights[permutation]
                     
             # Placeholders
-            scores = np.zeros(folds, dtype=np.float32)
             readouts = np.zeros((self.n_nodes + 1, folds), dtype=np.float32)
             
             # Fold size
@@ -332,9 +332,6 @@ class SimpleCycleReservoir:
             
             # Solve for out weights
             self.out_weights = np.linalg.solve(ridge_x, ridge_y).reshape(-1, 1)
-            
-            if skip_folds:
-                scores = None  # Otherwise undefined
         else:
             # Set weights to best in CV
             best_index = np.argmin(scores)
