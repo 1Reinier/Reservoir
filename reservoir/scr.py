@@ -253,7 +253,10 @@ class SimpleCycleReservoir:
             
         # Series weights
         sample_weights = series_weights.repeat(effective_length)
+        
+        # Placeholders
         scores = np.full(folds, np.nan, dtype=np.float32)
+        readouts = np.full((self.n_nodes + 1, folds), np.nan, dtype=np.float32)
 
         if not skip_folds:
             # Shuffle data
@@ -263,9 +266,6 @@ class SimpleCycleReservoir:
             shuffled_states = states[permutation]
             shuffled_y = all_y[permutation]        
             shuffled_weights = sample_weights[permutation]
-                    
-            # Placeholders
-            readouts = np.zeros((self.n_nodes + 1, folds), dtype=np.float32)
             
             # Fold size
             fold_size = samples // folds
@@ -318,6 +318,7 @@ class SimpleCycleReservoir:
                 scores[k] = self.error(prediction[burn_in:], validation_y[burn_in:], scoring_method)
                 readouts[:, k] = out_weights.reshape(-1,)
         
+        # Do a train on the full x and y dataset if demanded
         if full_train:
             # Rename by convention
             train_x = states
