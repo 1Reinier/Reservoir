@@ -200,7 +200,8 @@ class SimpleCycleReservoir:
         return scores.mean()
     
     @jit(cache=True)
-    def train_validate_multiple(self, y, x, series_weights, folds=5, scoring_method='L2', burn_in=30):
+    def train_validate_multiple(self, y, x, series_weights, folds=5, scoring_method='L2', 
+                                full_train=False, skip_folds=False, burn_in=30):
         """Trains and gives k-folds validation score for multiple series
         
         Parameters
@@ -211,6 +212,10 @@ class SimpleCycleReservoir:
             Multiple input series, belonging only to the series in y with the same index
         series_weights : array
             Array of n_series values, with the weighting of the series toward the regression
+        full_train : bool
+            Will train on full training set
+        skip_folds : bool
+            Skips k-folds if enabled
             
         Returns
         =======
@@ -249,72 +254,91 @@ class SimpleCycleReservoir:
         # Series weights
         sample_weights = series_weights.repeat(effective_length)
         
-        # Shuffle data
-        random_state = np.random.RandomState(self.seed + 2)
-        permutation = np.arange(samples, dtype=np.int32)
-        random_state.shuffle(permutation)    
-        shuffled_states = states[permutation]
-        shuffled_y = all_y[permutation]        
-        shuffled_weights = sample_weights[permutation]
+        if not skip_folds:
+            # Shuffle data
+            random_state = np.random.RandomState(self.seed + 2)
+            permutation = np.arange(samples, dtype=np.int32)
+            random_state.shuffle(permutation)    
+            shuffled_states = states[permutation]
+            shuffled_y = all_y[permutation]        
+            shuffled_weights = sample_weights[permutation]
+                    
+            # Placeholders
+            scores = np.zeros(folds, dtype=np.float32)
+            readouts = np.zeros((self.n_nodes + 1, folds), dtype=np.float32)
+            
+            # Fold size
+            fold_size = samples // folds
+            
+            # Checks
+            assert fold_size > burn_in, 'Burn-in too large for current k-folds cross-validation'
+            
+            # K-folds
+            for k in range(folds):
                 
-        # Placeholders
-        scores = np.zeros(folds, dtype=np.float32)
-        readouts = np.zeros((self.n_nodes + 1, folds), dtype=np.float32)
+                # Validation folds
+                start_index = k * fold_size
+                stop_index = start_index + fold_size
+                
+                # Indices
+                validation_indices = np.arange(start_index, stop_index, dtype=np.int32)
+                
+                # Train mask
+                train_mask = np.ones(samples, dtype=bool)
+                train_mask[validation_indices] = False
+                
+                # Concatenate inputs with node states
+                train_x = shuffled_states[train_mask]
+                train_y = shuffled_y[train_mask]
+                masked_weights = shuffled_weights[train_mask]
+                
+                # Center weights at 1 so to not distort L2 regularizion
+                w = (masked_weights / masked_weights.mean()).reshape(-1, 1)  # Make column vector 
+                            
+                # Weighted Ridge regression
+                ridge_x = train_x.T @ (w * train_x) + self.regularization * np.eye(train_x.shape[1])
+                ridge_y = train_x.T @ (w * train_y)
+                
+                # Solve for out weights
+                # try:
+                # Cholesky solution (fast)
+                out_weights = np.linalg.solve(ridge_x, ridge_y).reshape(-1, 1)
+                # except np.linalg.LinAlgError:
+                #     # Pseudo-inverse solution (robust solution if ridge_x is singular)
+                #     out_weights = (scipy.linalg.pinvh(ridge_x) @ ridge_y).reshape(-1, 1)  
+                
+                # Validation set
+                validation_x = shuffled_states[validation_indices]
+                validation_y = shuffled_y[validation_indices]
+                
+                # Predict
+                prediction = validation_x @ out_weights
+                
+                # Save
+                scores[k] = self.error(prediction[burn_in:], validation_y[burn_in:], scoring_method)
+                readouts[:, k] = out_weights.reshape(-1,)
         
-        # Fold size
-        fold_size = samples // folds
-        
-        # Checks
-        assert fold_size > burn_in, 'Burn-in too large for current k-folds cross-validation'
-        
-        # K-folds
-        for k in range(folds):
-            
-            # Validation folds
-            start_index = k * fold_size
-            stop_index = start_index + fold_size
-            
-            # Indices
-            validation_indices = np.arange(start_index, stop_index, dtype=np.int32)
-            
-            # Train mask
-            train_mask = np.ones(samples, dtype=bool)
-            train_mask[validation_indices] = False
-            
-            # Concatenate inputs with node states
-            train_x = shuffled_states[train_mask]
-            train_y = shuffled_y[train_mask]
-            masked_weights = shuffled_weights[train_mask]
+        if full_train:
+            # Rename by convention
+            train_x = states
+            train_y = all_y
             
             # Center weights at 1 so to not distort L2 regularizion
-            w = (masked_weights / masked_weights.mean()).reshape(-1, 1)  # Make column vector 
+            w = (sample_weights / sample_weights.mean()).reshape(-1, 1)  # Make column vector 
                         
             # Weighted Ridge regression
             ridge_x = train_x.T @ (w * train_x) + self.regularization * np.eye(train_x.shape[1])
             ridge_y = train_x.T @ (w * train_y)
             
             # Solve for out weights
-            # try:
-            # Cholesky solution (fast)
-            out_weights = np.linalg.solve(ridge_x, ridge_y).reshape(-1, 1)
-            # except np.linalg.LinAlgError:
-            #     # Pseudo-inverse solution (robust solution if ridge_x is singular)
-            #     out_weights = (scipy.linalg.pinvh(ridge_x) @ ridge_y).reshape(-1, 1)  
+            self.out_weights = np.linalg.solve(ridge_x, ridge_y).reshape(-1, 1)
             
-            # Validation set
-            validation_x = shuffled_states[validation_indices]
-            validation_y = shuffled_y[validation_indices]
-            
-            # Predict
-            prediction = validation_x @ out_weights
-            
-            # Save
-            scores[k] = self.error(prediction[burn_in:], validation_y[burn_in:], scoring_method)
-            readouts[:, k] = out_weights.reshape(-1,)
-        
-        # Set weights to best
-        best_index = np.argmin(scores)
-        self.out_weights = readouts[:, best_index]
+            if skip_folds:
+                scores = None  # Otherwise undefined
+        else:
+            # Set weights to best in CV
+            best_index = np.argmin(scores)
+            self.out_weights = readouts[:, best_index]
         
         # Return validation scores
         return scores
