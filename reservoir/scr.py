@@ -199,7 +199,7 @@ class SimpleCycleReservoir:
         # Return mean validation score
         return scores.mean()
     
-    @jit(nopython=True, cache=True)
+    @jit(cache=True)
     def train_validate_multiple(self, y, x, series_weights, folds=5, scoring_method='L2', 
                                 full_train=False, skip_folds=False, burn_in=30):
         """Trains and gives k-folds validation score for multiple series
