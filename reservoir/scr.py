@@ -153,9 +153,7 @@ class SimpleCycleReservoir:
         
         # Fold size
         fold_size = y.shape[0] // folds
-        
-        assert fold_size > burn_in, 'Burn_in too large for current k-folds'
-        
+                
         for k in range(folds):
             
             # Validation folds
@@ -270,9 +268,6 @@ class SimpleCycleReservoir:
             # Fold size
             fold_size = samples // folds
             
-            # Checks
-            assert fold_size > burn_in, 'Burn-in too large for current k-folds cross-validation'
-            
             # K-folds
             for k in range(folds):
                 
@@ -315,7 +310,7 @@ class SimpleCycleReservoir:
                 prediction = validation_x @ out_weights
                 
                 # Save
-                scores[k] = self.error(prediction[burn_in:], validation_y[burn_in:], scoring_method)
+                scores[k] = self.error(prediction, validation_y, scoring_method)
                 readouts[:, k] = out_weights.reshape(-1,)
         
         # Do a train on the full x and y dataset if demanded
