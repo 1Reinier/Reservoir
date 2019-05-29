@@ -4,7 +4,7 @@ A Python 3 toolset for creating and optimizing Echo State Networks.
 
 Contains:
 - Vanilla ESN and Simple Cyclic Reservoir architectures.
-- Bayesian Optimization with optimizexd. routines for Echo State Nets through `GPy`.
+- Bayesian Optimization with optimized routines for Echo State Nets through `GPy`.
 - Clustering routines to cluister time series by optimized model.
 
 >Author: Reinier Maat, Nikos Gianniotis  
