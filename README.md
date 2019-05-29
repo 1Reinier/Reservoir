@@ -2,16 +2,17 @@ Reservoir
 =========
 A Python 3 toolset for creating and optimizing Echo State Networks.
 
+>Author: Reinier Maat, Nikos Gianniotis  
+>License: MIT  
+>2016-2019  
+
 Contains:
 - Vanilla ESN and Simple Cyclic Reservoir architectures.
 - Bayesian Optimization with optimized routines for Echo State Nets through `GPy`.
 - Clustering routines to cluister time series by optimized model.
 
->Author: Reinier Maat, Nikos Gianniotis  
->License: MIT  
->2016-2019  
-
-Reference: 2018 International Joint Conference on Neural Networks (IJCNN), pp. 1-7. IEEE, 2018  
+Reference:  
+2018 International Joint Conference on Neural Networks (IJCNN), pp. 1-7. IEEE, 2018  
 https://arxiv.org/abs/1903.05071
 
 ## Example Use
