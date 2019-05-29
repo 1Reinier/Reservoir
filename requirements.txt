@@ -4,3 +4,4 @@ paramz
 GPy
 PyDOE
 GPyOpt
+numba
