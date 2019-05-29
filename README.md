@@ -35,7 +35,6 @@ esn_cv = EchoStateNetworkCV(bounds=bounds,
                             initial_samples=100,
                             subsequence_length=1000,
                             eps=1e-3,
-                            #mcmc_samples=20,  # Enable to test MCMC sampling (memory usage high!)
                             cv_samples=1,
                             max_iterations=1000,
                             scoring_method='tanh',
