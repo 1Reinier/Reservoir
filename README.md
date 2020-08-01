@@ -2,7 +2,7 @@ Reservoir
 =========
 A Python 3 toolset for creating and optimizing Echo State Networks.
 
->Author: Reinier Maat, Nikos Gianniotis  
+>Author: Jacob Reinier Maat, Nikos Gianniotis  
 >License: MIT  
 >2016-2019  
 
@@ -11,9 +11,11 @@ Contains:
 - Bayesian Optimization with optimized routines for Echo State Nets through `GPy`.
 - Clustering routines to cluister time series by optimized model.
 
-Reference:  
-2018 International Joint Conference on Neural Networks (IJCNN), pp. 1-7. IEEE, 2018  
-https://arxiv.org/abs/1903.05071
+**Please cite as:**  
+J. R. Maat, N. Gianniotis, “Reservoir: a Python Package to Train and Optimize Echo State Networks ,” 2017. [Online]. Available: http://github.com/https://github.com/1Reinier/Reservoir
+
+The open source code in this package supplements:  
+J. R. Maat, N. Gianniotis and P. Protopapas, "Efficient Optimization of Echo State Networks for Time Series Datasets," 2018 International Joint Conference on Neural Networks (IJCNN), Rio de Janeiro, 2018, pp. 1-7.
 
 ## Example Use
 ```python
